@@ -35,6 +35,9 @@ const requestParams = reactive({
   password: '',
 })
 
+
+// 쿠키
+
 const handleLogin = async () => {
   console.log("로그인 클릭") }
   /* if (!requestParams.userId || !requestParams.password) {
