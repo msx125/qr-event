@@ -8,7 +8,7 @@
           <input
               class="input-field"
               type="text"
-              placeholder="인트라넷 아이디를 입력해주세요."
+              placeholder="아이디를 입력해주세요."
               v-model="requestParams.userId"
           />
         </div>
@@ -18,7 +18,7 @@
               class="input-field"
               v-model="requestParams.password"
               type="password"
-              placeholder="인트라넷 비밀번호를 입력해주세요."
+              placeholder="비밀번호를 입력해주세요."
           />
         </div>
         <button type="submit" class="login-button" @click="handleLogin">

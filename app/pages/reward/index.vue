@@ -1,21 +1,12 @@
 <template>
   <div class="page-container">
-    <!-- GNB -->
-    <nav class="gnb">
-      <div class="gnb-content">
-        <h1 class="logo">IDEVEL</h1>
-        <div class="nav-links">
-          <a href="/login" class="nav-link">로그인</a>
-        </div>
-      </div>
-    </nav>
-
     <!-- Main Content -->
     <main class="main-content">
       <div class="content-card">
-        <div v-if="pending" class="status-message">확인 중…</div>
-        <div v-else-if="error" class="error-message">유효하지 않은 코드입니다.</div>
-        <div v-else class="success-content">
+
+<!--        <div v-if="pending" class="status-message">확인 중…</div>-->
+<!--        <div v-else-if="error" class="error-message">유효하지 않은 코드입니다.</div>-->
+        <div class="success-content">
           <h2 class="title">당첨 금액</h2>
           <p class="amount">10,000원</p>
           <p class="congratulations">축하드립니다! 당첨금을 확인해 주세요!</p>
@@ -43,43 +34,6 @@ const { data, pending, error } = await useFetch('users/qr', {
 .page-container {
   min-height: 100vh;
   background-color: #f5f5f5;
-}
-
-.gnb {
-  background-color: white;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 1rem 0;
-}
-
-.gnb-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  margin: 0;
-}
-
-.nav-links {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-link {
-  color: #666;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.nav-link:hover {
-  color: #333;
 }
 
 .main-content {
