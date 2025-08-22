@@ -7,7 +7,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
     // 따라서 LocalStorage 사용을 위한 방어문 작성
     if (process.server) return
 
-    const publicPaths = ['/', '/login']
+    const publicPaths = ['/']
     if (publicPaths.includes(to.path)) return
 
     const token = localStorage.getItem('accessToken')

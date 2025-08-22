@@ -22,12 +22,16 @@ import { useRoute } from 'vue-router';
 import { computed } from 'vue';
 
 const route = useRoute();
-const code = computed(() => (route.query.code ?? '').toString());
+const qrKey = computed(() => String(route.query.qrKey ?? ''))
+const isLoading = ref(false)
 
-// 예: 서버 검증
-const { data, pending, error } = await useFetch('users/qr', {
-  query: { code }
-});
+// QR 코드 인증에 대한 부분
+const res = await $fetch('users/qr', {})
+
+// 로그인 요청
+
+
+
 
 // 재영님에게, qr 코드와 토큰 요청
 // 토큰을 검증하고, point를 응답
