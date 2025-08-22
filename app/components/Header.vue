@@ -1,7 +1,7 @@
 <template>
   <nav class="gnb">
     <div class="gnb-content">
-      <NuxtLink class="logo" to="/login">IDEVEL</NuxtLink>
+      <NuxtLink class="logo" to="/">IDEVEL</NuxtLink>
       <div class="nav-links">
         <a href="/login" class="nav-link">로그인</a>
       </div>

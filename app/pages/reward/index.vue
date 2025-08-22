@@ -28,6 +28,36 @@ const code = computed(() => (route.query.code ?? '').toString());
 const { data, pending, error } = await useFetch('users/qr', {
   query: { code }
 });
+
+// 재영님에게, qr 코드와 토큰 요청
+// 토큰을 검증하고, point를 응답
+
+// 사용자 별로 얻은 포인트를 화면에 뿌린다
+
+// 나한테, QR 코드와 토큰을 요청하라? 서버에 보내라?
+// 토큰을 검증하고 QR코등; 해당하는 POINT 응답하겠다
+
+// /users/qr
+// 요청
+// {
+//   "seq": "시퀀스 번호 (int)",
+//     "qrKey": "qrKey값 (string)"
+// }
+// 응답 성공
+// {
+//   "ok": true,
+//     "points": "포인트액수",
+//     "name": "회원명",
+//     "memo": "정상처리"
+// }
+// 응답 실패
+// {
+//   "ok": false,
+//     "points": null,
+//     "name": null,
+//     "memo": "실패 사유"
+// }
+
 </script>
 
 <style scoped>

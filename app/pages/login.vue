@@ -9,7 +9,7 @@
               class="input-field"
               type="text"
               placeholder="아이디를 입력해주세요."
-              v-model="requestParams.userId"
+              v-model="requestParams.id"
           />
         </div>
         <!-- pw 입력 -->
@@ -21,42 +21,93 @@
               placeholder="비밀번호를 입력해주세요."
           />
         </div>
-        <button type="submit" class="login-button" @click="handleLogin">
-          🎁 당첨 확인 🎁
+        <button type="button" class="login-button" @click="handleLogin" :disabled="isLoading">
+          {{ isLoading ? '확인 중...' : '🎁 Point 확인하기 🎁' }}
         </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+const route = useRoute()
+const router = useRouter()
+
+// 대기 UI
+const isLoading = ref(false)
+
+// 폼 상태
 const requestParams = reactive({
-  userId: '',
+  id: '',
   password: '',
 })
 
+// 토큰 로컬스토리지 저장
 
-// 쿠키
+
+// URL 에서 QR 코드 읽기 : 로그인 이후 qrKey를 qr api로 전송. (json 형태로 body에 넣어서 post
+
+const qr = computed(() => String(route.query.qrKey ?? ''))
 
 const handleLogin = async () => {
-  console.log("로그인 클릭") }
-  /* if (!requestParams.userId || !requestParams.password) {
-    return
-  }
-  if (requestParams.password.length < 6) {
-    return
-  }
   try {
-    const res = await $fetch('/users/login', {
-      method: 'POST',
-      body: requestParams
+    isLoading.value = true
+
+    // fetcher 바꾸기
+    const {VITE_BASE_URL} = import.meta.env
+    const api = $fetch.create({
+      baseURL: VITE_BASE_URL,
+      onRequest: (config) => {
+        const token = localStorage.getItem('token')
+        if(token){
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      }
     })
 
-    console.log("로그인 성공", res)
-  } catch (err) {
-    console.error("로그인 실패", err)
-    alert("아이디 또는 비밀번호를 확인해주세요.")
-  } */
+    // 로그인 요청
+    const res = await $fetch('http://192.168.1.120:8080/users/login', {
+      method: 'POST',
+      body: { id: requestParams.id, password: requestParams.password },
+      // credentials: 'include'
+    })
+
+    console.log(res)
+
+
+
+    if (res) {
+      if(res.결과 === "성공") {
+        console.log("로그인 성공")
+        console.log(res.seq)
+        console.log(res.accessToken)
+
+        localStorage.setItem('accessToken', res.accessToken)
+
+      } else {
+        console.log("로그인 실패")
+      }
+    } else {
+      console.log("서버 통신 오류")
+    }
+
+    // TODO 결과값에서 JWT 로컬스토리지에 저장해두기
+    // TODO QR코드로 들어왔을때 로그인이 안되었는경우 로그인페이지 오는데 로그인하고나서 다시 QR로 들어온 페이지로 다시 보내야된다.
+    // if (qrKey) {
+    //   return router.push(`/qr?qrKey=${qrKey}`)
+    // }
+
+    // 로그인 성공하고 라우팅 되게끔
+
+    // TODO 미들웨어에서 받은 쿼리로 다시 보내기
+    return router.push('/reward')
+
+
+} catch (error) {
+    console.error(error)
+  }
+}
+
+
 
 </script>
 
