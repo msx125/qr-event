@@ -5,16 +5,19 @@ export default defineNuxtRouteMiddleware((to, from) => {
     
     // SSR 기능이 꺼져도 서버 컨텍스트가 존재해서, 서버에서 localStorage 사용하면 안된다고 함
     // 따라서 LocalStorage 사용을 위한 방어문 작성
-    if (process.server) return
 
-    const publicPaths = ['/']
-    if (publicPaths.includes(to.path)) return
+    // 임시 주석 처리
+    
+    // if (process.server) return
 
-    const token = localStorage.getItem('accessToken')
-    if (!token && to.path !== '/') {
-        // 이전 스택 리스트를 쌓는게 아니라 아예 대체시켜버리는...
-        return navigateTo('/', {replace: true})
-    }
+    // const publicPaths = ['/']
+    // if (publicPaths.includes(to.path)) return
+
+    // const token = localStorage.getItem('accessToken')
+    // if (!token && to.path !== '/') {
+    //     // 이전 스택 리스트를 쌓는게 아니라 아예 대체시켜버리는...
+    //     return navigateTo('/', {replace: true})
+    // }
 })
 
 

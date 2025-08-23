@@ -73,7 +73,10 @@ const handleLogin = async () => {
       }
     })
 
-
+// 비밀번호 유효성 체크 필요함
+// 프론트에서 비밀번호는 무조건 문자열로 보내야 함  ( 타입 체크 필요 )
+                // 요청값 응답값은 서로 타입은 맞추긴 해야함
+                // DTO 라는게 있다
 
     // 로그인 요청
     const res = await api('users/login', {
@@ -83,8 +86,6 @@ const handleLogin = async () => {
 
     console.log(res)
 
-
-
     if (res) {
       if(res.결과 === "성공") {
         console.log("로그인 성공")
@@ -92,11 +93,16 @@ const handleLogin = async () => {
         console.log(res.accessToken)
 
         localStorage.setItem('accessToken', res.accessToken)
-
+        localStorage.setItem('seq', res.seq)
         // 리워드 페이지 이동
         return navigateTo(`/reward?qrKey=${qrKey.value}`, {
           replace: true,
         })
+
+        // res 에 담긴 seq를 결과 확인 페이지로 넘기기
+        // 1. qrKey와 동일하게 URL 로 붙이기
+        // 2. 액세스 토큰이랑 동일하게 로컬 스토리지 저장?
+        // 3. 
 
       } else {
         console.log("로그인 실패")
