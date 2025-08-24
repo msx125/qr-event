@@ -54,41 +54,28 @@ const handleLogin = async () => {
 
     isLoading.value = true
 
-    // fetcher 바꾸기
-    // header 안에 Authorization 라는 객체를 넣었어야 했는데..
-    // 저기서 어떻게 안과, 계층과
-    // ??? 어떻게 하는거지 ???
-    // header A 직접 넣어야했는데,
     const {VITE_BASE_URL} = import.meta.env
     const api = $fetch.create({
       baseURL: VITE_BASE_URL,
       onRequest: (config) => {
         const token = localStorage.getItem('accessToken')
         if(token){
-          // http 헤더가 어떻게 통신하는지..
-          // API 는 네트워크 공부를 할 수 밖에 없다.
-          // 네트워크 책을 사서 보면되는건가 ? 웹개발 강의가 더 빠르다
           config.headers = {'Authorization' : `Bearer ${token}`}
         }
       }
     })
 
-
-
     // 로그인 요청
-    const res = await api('users/login', {
+    const res = await api('/api/users/login', {
       method: 'POST',
       body: { id: requestParams.id, password: requestParams.password },
     })
 
     console.log(res)
 
-
-
     if (res) {
       if(res.결과 === "성공") {
         console.log("로그인 성공")
-        console.log(res.seq)
         console.log(res.accessToken)
 
         localStorage.setItem('accessToken', res.accessToken)

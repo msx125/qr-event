@@ -4,13 +4,12 @@
     <main class="main-content">
       <div class="content-card">
 
-<!--        <div v-if="pending" class="status-message">확인 중…</div>-->
-<!--        <div v-else-if="error" class="error-message">유효하지 않은 코드입니다.</div>-->
+        <!--        <div v-if="pending" class="status-message">확인 중…</div>-->
+        <!--        <div v-else-if="error" class="error-message">유효하지 않은 코드입니다.</div>-->
         <div class="success-content">
-          <h2 class="title">당첨 금액</h2>
-          <p class="amount">10,000원</p>
-          <p class="congratulations">축하드립니다! 당첨금을 확인해 주세요!</p>
-          <small class="code-display">코드: {{ code }}</small>
+          <h2 class="title">당첨 포인트</h2>
+          <p class="congratulations">축하드립니다! {{ name}} 님</p>
+          <p class="amount"> {{ points }} 포인트 획득! </p>
         </div>
       </div>
     </main>
@@ -25,21 +24,71 @@ const route = useRoute();
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 const isLoading = ref(false)
 
-// QR 코드 인증에 대한 부분
-const res = await $fetch('users/qr', {})
 
-// 로그인 요청
+// 포맷터 알아보기
+const {VITE_BASE_URL} = import.meta.env
+// const api = $fetch.create({
+//   baseURL: VITE_BASE_URL,
+//   onRequest: (config) => {
+//     const token = localStorage.getItem('accessToken')
+//     if(token){
+//       config.headers = {'Authorization' : `Bearer ${token}`}
+//     }
+//   }
+// })
+const api = $fetch.create({
+  baseURL: VITE_BASE_URL,
+  onRequest({ options }) {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+
+      // 구조 분해 방식
+      options.headers = new Headers(options.headers || {})
+      options.headers.set('Authorization', `Bearer ${token}`)
+    }
+  }
+})
+
+// QR 코드 인증에 대한 부분 ( 재영님에게, qr 코드와 토큰 요청  - 토큰을 검증하고, point를 응답)
+// 나한테, QR 코드와 토큰을 요청하라? 서버에 보내라?
+// 토큰을 검증하고 QR코등; 해당하는 POINT 응답하겠다
+const res = await api('/api/users/qr', {
+  method: 'POST',
+  body: {
+    qrKey: qrKey.value,
+  }
+})
+
+console.log(res)
+
+const name = res.name
+const points = res.points
 
 
+// 타입스크립트로 바꾸기
+// api 컴포저블화
+
+// 요청
+// {
+//   "seq": "시퀀스 번호 (int)",
+//     "qrKey": "qrKey값 (string)"
+// }
 
 
-// 재영님에게, qr 코드와 토큰 요청
-// 토큰을 검증하고, point를 응답
+//
+
+// 리스트 : 총 포인트를 화면
+// 백엔드 인턴2명과, 내 프론트
+// 리스트 총포인트 X
+
+// 그냥 백엔드에서 보내줄때 총 포인트, 얻은 포인트
+//
+
+
 
 // 사용자 별로 얻은 포인트를 화면에 뿌린다
 
-// 나한테, QR 코드와 토큰을 요청하라? 서버에 보내라?
-// 토큰을 검증하고 QR코등; 해당하는 POINT 응답하겠다
+//
 
 // /users/qr
 // 요청
@@ -121,11 +170,5 @@ const res = await $fetch('users/qr', {})
   color: #666;
   font-size: 0.9rem;
   margin: 0;
-}
-
-.code-display {
-  color: #999;
-  font-size: 0.8rem;
-  margin-top: 1rem;
 }
 </style>
