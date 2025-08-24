@@ -50,10 +50,12 @@ const qrKey = computed(() => String(route.query.qrKey ?? ''))
 console.log(qrKey.value)
 
 const handleLogin = async () => {
+  if(isLoading.value) return
+  isLoading.value = true
+
   try {
 
-    isLoading.value = true
-
+    // 리팩토링하기
     const {VITE_BASE_URL} = import.meta.env
     const api = $fetch.create({
       baseURL: VITE_BASE_URL,
@@ -74,8 +76,8 @@ const handleLogin = async () => {
     console.log(res)
 
     if (res) {
-      if(res.결과 === "성공") {
-        console.log("로그인 성공")
+      if(res.결과 === "성공" && res.accessToken) {
+        console.log("로그인 성공함. 응답받은 결과도 성공이고, 액세스 토큰도 응답받음")
         console.log(res.accessToken)
 
         localStorage.setItem('accessToken', res.accessToken)
@@ -86,22 +88,16 @@ const handleLogin = async () => {
         })
 
       } else {
-        console.log("로그인 실패")
+        console.log("로그인 실패", res)
       }
     } else {
       console.log("서버 통신 오류")
     }
 
-
-    // TODO 로그인하고나서 다시 QR로 들어온 페이지로 다시 보내야된다.
-
-    // 로그인 성공하고 라우팅 되게끔
-
-    // TODO 미들웨어에서 받은 쿼리로 다시 보내기
-
-
   } catch (error) {
     console.error(error)
+  } finally {
+    isLoading.value = false
   }
 }
 
