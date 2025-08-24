@@ -5,18 +5,18 @@
 
         <div v-if="isLoading" class="status-message">확인 중…</div>
 
-        <!-- 서버 memo를 그대로 보여줍니다 -->
-<!--        <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>-->
+        <!-- 서버에서 qr 상태에 대한 응답 key memo 보여주기 -->
+        <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
         <div v-else class="success-content">
           <h2 class="congratulation-name">축하드립니다 {{ memName }} 님</h2>
 
           <!-- 이번 QR로 획득한 포인트 -->
-          <p class="points">{{ gainedPoint.toLocaleString() }} P 획득</p>
+          <p class="points">{{qrrank}} 등 당첨!<br> {{ gainedPoint.toLocaleString() }} P 획득!</p>
 
           <!-- 총점/등수 (없으면 — 표기) -->
-          <p class="points-sub">얼마 모았지?  {{ totalPoint === null ? '—' : totalPoint.toLocaleString() }}</p>
-          <p class="points-sub">난 지금 몇등?  {{ rank === null ? '—' : `${rank}위` }}</p>
+          <p class="points-sub">얼마 모았지?  {{ totalPoint === null ? '0점' : totalPoint.toLocaleString() }}</p>
+          <p class="points-sub">난 지금 몇등?  {{ rank === null ? '등수없음' : `${rank}위` }}</p>
         </div>
 
       </div>
@@ -31,6 +31,10 @@ import { ref, computed, onMounted } from 'vue'
 const route = useRoute()
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
+// 새로고침 시 화면 날라가는 것 방지 위한 qr별 캐시키
+const cacheKey = computed(() => `reward:${qrKey.value}`)
+
+
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
 
@@ -39,6 +43,10 @@ const memName = ref<string>('')
 const gainedPoint = ref<number>(0)
 const totalPoint = ref<number | null>(null)
 const rank = ref<number | null>(null)
+
+// 로또 등수
+const qrrank = ref<number | null>(null)
+
 
 /* API 클라이언트 (기존 방식 유지) */
 const { VITE_BASE_URL } = import.meta.env
@@ -81,6 +89,8 @@ async function loadData() {
     // 정상 처리
     gainedPoint.value = Number(res1?.points ?? 0)
     memName.value = String(res1?.name ?? '').trim()
+    qrrank.value = res1?.qrrank ?? null
+
 
     // 2) 랭킹/총점 (GET, 파라미터 없음)
     const res2: any = await api('/api/users/rank', { method: 'GET' })
@@ -102,7 +112,21 @@ async function loadData() {
       totalPoint.value = null
       rank.value = null
     }
+
+    // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지)
+    sessionStorage.setItem(cacheKey.value, JSON.stringify({
+    memName: memName.value,
+    gainedPoint: gainedPoint.value,
+    totalPoint: totalPoint.value,
+    rank: rank.value,
+    qrrank: qrrank.value,
+    }))
+
   } catch (e: any) {
+    if (e?.status === 401) {
+    return navigateTo(`/?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
+    }
+
     errorMessage.value =
         e?.data?.message ||
         e?.message ||
@@ -113,6 +137,20 @@ async function loadData() {
 }
 
 onMounted(() => {
+  loadData()
+
+  try {
+    const raw = sessionStorage.getItem(cacheKey.value)
+    if (raw) {
+      const d = JSON.parse(raw)
+      memName.value = d.memName ?? ''
+      gainedPoint.value = Number(d.gainedPoint ?? 0)
+      totalPoint.value = d.totalPoint ?? null
+      rank.value = d.rank ?? null
+      qrrank.value = d.qrrank ?? null
+      return
+      }
+  } catch {}
   loadData()
 })
 </script>
