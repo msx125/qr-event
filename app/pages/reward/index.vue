@@ -9,14 +9,14 @@
         <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
         <div v-else class="success-content">
-          <h2 class="congratulation-name">축하드립니다 {{ memName }} 님</h2>
+          <h2 class="congratulation-name">축하합니다 {{ memName }} 님 🎉 </h2>
 
           <!-- 이번 QR로 획득한 포인트 -->
-          <p class="points">{{qrrank}} 등 당첨!<br> {{ gainedPoint.toLocaleString() }} P 획득!</p>
+          <p class="points">로또 {{qrrank}} 등  - {{ gainedPoint.toLocaleString() }} P 획득!</p>
 
           <!-- 총점/등수 (없으면 — 표기) -->
-          <p class="points-sub">얼마 모았지?  {{ totalPoint === null ? '0점' : totalPoint.toLocaleString() }}</p>
-          <p class="points-sub">난 지금 몇등?  {{ rank === null ? '등수없음' : `${rank}위` }}</p>
+          <p class="points-sub">총 포인트는? 💸  {{ totalPoint === null ? '0점' : totalPoint.toLocaleString() }} P</p>
+          <p class="points-sub">내 포인트 순위는? 🤔 {{ rank === null ? '등수없음' : `${rank}위` }}</p>
         </div>
 
       </div>
@@ -48,7 +48,7 @@ const rank = ref<number | null>(null)
 const qrrank = ref<number | null>(null)
 
 
-/* API 클라이언트 (기존 방식 유지) */
+// fetcher 로 빼기
 const { VITE_BASE_URL } = import.meta.env
 const api = $fetch.create({
   baseURL: VITE_BASE_URL,
@@ -63,6 +63,10 @@ const api = $fetch.create({
 
 /* 데이터 로드 (단순 흐름) */
 async function loadData() {
+
+  // 이미 로딩중이면 종료되어서 2번 호출 안되도록 방어 시도 25.08.25
+  if(isLoading.value) return
+
   try {
     isLoading.value = true
     errorMessage.value = null
@@ -113,7 +117,7 @@ async function loadData() {
       rank.value = null
     }
 
-    // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지)
+    // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지) - 처음 한번만 서버 요청 후 캐시 저장
     sessionStorage.setItem(cacheKey.value, JSON.stringify({
     memName: memName.value,
     gainedPoint: gainedPoint.value,
@@ -136,9 +140,10 @@ async function loadData() {
   }
 }
 
+// 컴포넌트가 DOM에 마운트될 때 자동으로 실행되는 함수
 onMounted(() => {
-  loadData()
 
+    // 마운트 시 캐시 먼저 시도하도록 함
   try {
     const raw = sessionStorage.getItem(cacheKey.value)
     if (raw) {
@@ -150,6 +155,7 @@ onMounted(() => {
       qrrank.value = d.qrrank ?? null
       return
       }
+    // 마운트 시 캐시 먼저 시도하도록 함
   } catch {}
   loadData()
 })
@@ -179,8 +185,8 @@ onMounted(() => {
 .status-message { font-size: 1.1rem; color: #666; }
 .error-message { font-size: 1.1rem; color: #dc2626; white-space: pre-wrap; }
 .success-content { display: flex; flex-direction: column; gap: 1rem; }
-.congratulation-name { font-size: 1.5rem; color: #333; margin: 0; }
+.congratulation-name { font-size: 1.4rem; color: #333; margin: 0; }
 .points { font-size: 1.5rem; font-weight: bold; color: #2563eb; margin: 0; }
 
-.points-sub { font-size: 1rem; font-weight: bold; color: #2563eb; margin: 0; }
+.points-sub { font-size: 1rem; font-weight: bold; margin: 0; }
 </style>

@@ -11,9 +11,10 @@ export default defineNuxtRouteMiddleware((to, from) => {
     if (publicPaths.includes(to.path)) return
 
     const token = localStorage.getItem('accessToken')
+
     if (!token && to.path !== '/') {
         // 이전 스택 리스트를 쌓는게 아니라 아예 대체시켜버리는...
-        return navigateTo('/', {replace: true})
+        return navigateTo({path: '/', query: to.query}, {replace: true})
     }
 })
 

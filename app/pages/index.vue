@@ -24,6 +24,10 @@
       <button type="button" class="login-button" @click="handleLogin" :disabled="isLoading">
         {{ isLoading ? '확인 중...' : '🎁 Point 확인하기 🎁' }}
       </button>
+
+      <!--      유효성 검사 추가-->
+      <p v-if="loginMemo" class="login-memo">{{ loginMemo }}</p>
+
     </div>
   </div>
 </template>
@@ -41,27 +45,28 @@ const requestParams = reactive({
   password: '',
 })
 
-// 토큰 로컬스토리지 저장
-
+// 유효성 감사 안내문 노출용
+const loginMemo = ref('')
 
 // URL 에서 QR 코드 읽기 : 로그인 이후 qrKey를 qr api로 전송. (json 형태로 body에 넣어서 post
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 console.log(qrKey.value)
-
 const handleLogin = async () => {
   if(isLoading.value) return
   isLoading.value = true
+  loginMemo.value = ''
 
   try {
-
-    // 리팩토링하기
-    const {VITE_BASE_URL} = import.meta.env
+    // fetcher 로 빼기
+    const { VITE_BASE_URL } = import.meta.env
     const api = $fetch.create({
       baseURL: VITE_BASE_URL,
-      onRequest: (config) => {
+      onRequest({ options }) {
         const token = localStorage.getItem('accessToken')
-        if(token){
-          config.headers = {'Authorization' : `Bearer ${token}`}
+        console.log("token", token)
+        if (token) {
+          options.headers = new Headers(options.headers || {})
+          options.headers.set('Authorization', `Bearer ${token}`)
         }
       }
     })
@@ -73,6 +78,10 @@ const handleLogin = async () => {
     })
 
     console.log(res)
+
+    const serverMemo = String(res?.memo ?? res?.결과 ?? '')
+
+
 
     if (res) {
       if(res.결과 === "성공" && res.accessToken) {
@@ -86,20 +95,21 @@ const handleLogin = async () => {
         })
 
       } else {
-        console.log("로그인 실패", res)
+        loginMemo.value = serverMemo || '로그인에 실패했습니다.'
       }
     } else {
-      console.log("서버 통신 오류")
+      console.log("서버 통신, 200외 오류")
     }
 
-  } catch (error) {
-    console.error(error)
+  } catch (e) {
+
+    // 서버 에러 일때도 서버가 전달한 메세지 노출
+    loginMemo.value = String(e?.data?.memo ?? e?.data?.message ?? e?.message ?? '통신 중 문제가 발생했습니다.')
+
   } finally {
     isLoading.value = false
   }
 }
-
-
 
 </script>
 
@@ -120,6 +130,7 @@ const handleLogin = async () => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
+  text-align: center;   /* ← 자식 텍스트 기본 중앙 정렬 */
 }
 
 .title {
@@ -173,4 +184,14 @@ const handleLogin = async () => {
   .login-button { background: #2a2a2a; }
   .login-button:hover { background: #3a3a3a; }
 }
+
+.login-memo {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #dc2626;        /* 빨간색 */
+  white-space: pre-wrap; /* 줄바꿈 그대로 표시 */
+  text-align: center;    /* ← 중앙 정렬 */
+  display: block;        /* 문단(block)으로 지정 */
+}
+
 </style>
