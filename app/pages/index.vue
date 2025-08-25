@@ -45,7 +45,6 @@ const requestParams = reactive({
 
 
 // URL 에서 QR 코드 읽기 : 로그인 이후 qrKey를 qr api로 전송. (json 형태로 body에 넣어서 post
-
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 console.log(qrKey.value)
 
@@ -77,10 +76,9 @@ const handleLogin = async () => {
 
     if (res) {
       if(res.결과 === "성공" && res.accessToken) {
-        console.log("로그인 성공함. 응답받은 결과도 성공이고, 액세스 토큰도 응답받음")
-        console.log(res.accessToken)
-
+        console.log("로그인 성공")
         localStorage.setItem('accessToken', res.accessToken)
+        console.log("액세스 토큰 저장 : ", res.accessToken)
 
         // 리워드 페이지 이동
         return navigateTo(`/reward?qrKey=${qrKey.value}`, {
