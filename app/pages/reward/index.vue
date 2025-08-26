@@ -25,20 +25,16 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
-
 const route = useRoute()
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
 // 새로고침 시 화면 날라가는 것 방지 위한 qr별 캐시키
 const cacheKey = computed(() => `reward:${qrKey.value}`)
 
-
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
 
-/* 화면에 쓸 변수 (요청하신 대로 변수로 제공) */
+// 서버가 content 에 담아주는 요청
 const memName = ref<string>('')
 const gainedPoint = ref<number>(0)
 const totalPoint = ref<number | null>(null)
@@ -116,6 +112,7 @@ async function loadData() {
       totalPoint.value = null
       rank.value = null
     }
+
 
     // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지) - 처음 한번만 서버 요청 후 캐시 저장
     sessionStorage.setItem(cacheKey.value, JSON.stringify({

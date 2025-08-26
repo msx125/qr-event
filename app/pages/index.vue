@@ -34,7 +34,8 @@
 
 <script setup>
 const route = useRoute()
-const router = useRouter()
+// const router = useRouter()
+const { setAuthed, setName } = useAuth()
 
 // 대기 UI
 const isLoading = ref(false)
@@ -50,6 +51,15 @@ const loginMemo = ref('')
 
 // URL 에서 QR 코드 읽기 : 로그인 이후 qrKey를 qr api로 전송. (json 형태로 body에 넣어서 post
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
+
+// 토큰 있으면 reward로 자동이동
+onMounted(() => {
+  const token = localStorage.getItem('accessToken')
+  if (token) {
+    return navigateTo(`/reward?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
+  }
+})
+
 console.log(qrKey.value)
 const handleLogin = async () => {
   if(isLoading.value) return
@@ -86,9 +96,16 @@ const handleLogin = async () => {
     if (res) {
       if(res.결과 === "성공" && res.accessToken) {
         console.log("로그인 성공")
+        console.log("res 응답값은", res)
+
         localStorage.setItem('accessToken', res.accessToken)
+
+        setAuthed(true)
+
         console.log("액세스 토큰 저장 : ", res.accessToken)
 
+        // 사용자 이름 설정 -> 재영님이 아직 응답값 안줬음
+        if (res.memberName) setName(res.memberName)
         // 리워드 페이지 이동
         return navigateTo(`/reward?qrKey=${qrKey.value}`, {
           replace: true,

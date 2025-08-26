@@ -1,14 +1,34 @@
 <template>
   <nav class="gnb">
     <div class="gnb-content">
-      <NuxtLink class="logo" to="/">IDEVEL</NuxtLink>
-      <div class="nav-links">
-        <a href="/" class="nav-link">로그인</a>
+      <!-- FIX: 불필요한 a 제거 -->
+      <NuxtLink class="logo" href="/">IDEVEL</NuxtLink>
+
+      <!-- 로그인 화면에서는 nav-links 자체를 숨김 -->
+      <div v-if="!isLoginPage" class="nav-links">
+
+        <!-- 로그인 상태 -->
+        <template v-if="isAuthed">
+          <div>{{ name }} 님</div>
+          <button class="nav-link-btn" @click="logout">로그아웃</button>
+        </template>
+
+        <!-- 비로그인 상태 -->
+        <template v-else>
+          <NuxtLink class="nav-link" to="/">로그인</NuxtLink>
+        </template>
       </div>
     </div>
   </nav>
 </template>
 
+<script setup lang="ts">
+const route = useRoute()
+const { isAuthed, name, logout } = useAuth()
+
+// 현재 라우트가 로그인 페이지("/")인지 판별
+const isLoginPage = computed(() => route.path === '/')
+</script>
 
 <style scoped>
 
@@ -47,6 +67,21 @@
 
 .nav-link:hover {
   color: #333;
+}
+
+.nav-link-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+
+.nav-link-btn:hover {
+  color: #333;
+  text-decoration: underline;
 }
 
 </style>
