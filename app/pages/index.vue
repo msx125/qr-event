@@ -35,7 +35,7 @@
 <script setup>
 const route = useRoute()
 // const router = useRouter()
-const { setAuthed, setName } = useAuth()
+const { setAuthed, setName, logout } = useAuth()
 
 // 대기 UI
 const isLoading = ref(false)
@@ -49,18 +49,20 @@ const requestParams = reactive({
 // 유효성 감사 안내문 노출용
 const loginMemo = ref('')
 
-// URL 에서 QR 코드 읽기 : 로그인 이후 qrKey를 qr api로 전송. (json 형태로 body에 넣어서 post
+// URL 에서 QR 코드 읽기
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
 // 토큰 있으면 reward로 자동이동
 onMounted(() => {
   const token = localStorage.getItem('accessToken')
-  if (token) {
+  // 토큰 유효성도 확인해야 함
+  if (token && token !== 'undefined' && token !== 'null') {
     return navigateTo(`/reward?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
   }
 })
 
 console.log(qrKey.value)
+
 const handleLogin = async () => {
   if(isLoading.value) return
   isLoading.value = true
@@ -78,6 +80,11 @@ const handleLogin = async () => {
           options.headers = new Headers(options.headers || {})
           options.headers.set('Authorization', `Bearer ${token}`)
         }
+      },
+      onResponseError({ response: res }) {
+        if (res.status === 401) {
+          logout()
+        }
       }
     })
 
@@ -87,25 +94,27 @@ const handleLogin = async () => {
       body: { id: requestParams.id, password: requestParams.password },
     })
 
-    console.log(res)
+    console.log("awit api 바로 다음 res", res)
 
-    const serverMemo = String(res?.memo ?? res?.결과 ?? '')
-
-
+    const serverMemo = String(res?.memo ?? res?.result ?? '')
 
     if (res) {
-      if(res.결과 === "성공" && res.accessToken) {
+      if(res.result === "성공" && res.accessToken) {
+
         console.log("로그인 성공")
-        console.log("res 응답값은", res)
+
+        console.log("2번째 다음 res", res)
 
         localStorage.setItem('accessToken', res.accessToken)
-
-        setAuthed(true)
-
         console.log("액세스 토큰 저장 : ", res.accessToken)
 
+        // 토큰을 저장하고 나면, 전역 상태에 '응 로그인 약속'
+        setAuthed(true)
+
         // 사용자 이름 설정 -> 재영님이 아직 응답값 안줬음
-        if (res.memberName) setName(res.memberName)
+        if (res.name) { setName(res.name) }
+        localStorage.setItem('memName', res.name)
+
         // 리워드 페이지 이동
         return navigateTo(`/reward?qrKey=${qrKey.value}`, {
           replace: true,

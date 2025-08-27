@@ -2,7 +2,9 @@
   <nav class="gnb">
     <div class="gnb-content">
       <!-- FIX: 불필요한 a 제거 -->
-      <NuxtLink class="logo" href="/">IDEVEL</NuxtLink>
+      <NuxtLink class="logo">
+        <img src=/images/logo.png />
+      </NuxtLink>
 
       <!-- 로그인 화면에서는 nav-links 자체를 숨김 -->
       <div v-if="!isLoginPage" class="nav-links">
@@ -17,6 +19,7 @@
         <template v-else>
           <NuxtLink class="nav-link" to="/">로그인</NuxtLink>
         </template>
+
       </div>
     </div>
   </nav>
@@ -28,6 +31,7 @@ const { isAuthed, name, logout } = useAuth()
 
 // 현재 라우트가 로그인 페이지("/")인지 판별
 const isLoginPage = computed(() => route.path === '/')
+
 </script>
 
 <style scoped>
@@ -48,10 +52,11 @@ const isLoginPage = computed(() => route.path === '/')
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  margin: 0;
+  max-height: 40px;  /* 세로 크기만 제한 */
+  height: auto;
+  width: auto;
+  object-fit: contain;
+  margin-right: 4rem;
 }
 
 .nav-links {

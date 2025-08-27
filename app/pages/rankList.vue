@@ -1,7 +1,5 @@
 <template>
   <div class="page-container">
-    <!-- 헤더는 이미 있으므로 생략 -->
-
     <main class="main-content">
       <div class="content-wrapper">
         <div class="ranking-section">
@@ -22,6 +20,7 @@
             <div class="ranking-card">
               <div class="ranking-header">
                 <span class="header-item">No.</span>
+                <span class="header-item">이름</span>
                 <span class="header-item">당첨 금액</span>
                 <span class="header-item">등록 날짜</span>
                 <span class="header-item">상세</span>
@@ -35,6 +34,7 @@
                     :class="{ 'my-rank': item.isMe }"
                 >
                   <span class="rank-number">{{ getRankNumber(index) }}</span>
+                  <span class="mem-name">{{ item.memName }}</span>
                   <span class="prize-amount">{{ Number(item.totalPoint || 0).toLocaleString() }}</span>
                   <span class="register-date">{{ formatDate(item.regDate) }}</span>
                   <button
@@ -65,47 +65,44 @@
             </button>
           </div>
         </div>
-
-        <!-- 상세 모달 -->
-        <div v-if="showDetailModal" class="modal-overlay" @click="closeDetail">
-          <div class="modal-content" @click.stop>
-            <div class="modal-header">
-              <h3>당첨 결과 상세</h3>
-              <button class="close-button" @click="closeDetail">×</button>
-            </div>
-
-            <div class="modal-body">
-              <div v-if="selectedDetail" class="detail-info">
-                <div class="info-row">
-                  <span class="label">순위:</span>
-                  <span class="value">{{ selectedDetail.rank }}위</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">이름:</span>
-                  <span class="value">{{ selectedDetail.memName }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">당첨 금액:</span>
-                  <span class="value">{{ Number(selectedDetail.totalPoint || 0).toLocaleString() }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">등록일:</span>
-                  <span class="value">{{ formatDate(selectedDetail.regDate) }}</span>
-                </div>
-              </div>
-
-              <p class="modal-message">조회되는 리스트가 없습니다.</p>
-            </div>
-
-            <div class="modal-footer">
-              <button class="confirm-button" @click="closeDetail">
-                예전부터 더 보기
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
+
+    <!-- ✅ 상세 모달 -->
+    <div v-if="showDetailModal" class="modal-overlay" @click="closeDetail">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>당첨 결과 상세</h3>
+          <button class="close-button" @click="closeDetail">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div v-if="selectedDetail" class="detail-info">
+            <div class="info-row">
+              <span class="label">순위</span>
+              <span class="value">{{ selectedDetail.rank }}위</span>
+            </div>
+            <div class="info-row">
+              <span class="label">이름</span>
+              <span class="value">{{ selectedDetail.memName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">포인트</span>
+              <span class="value">{{ Number(selectedDetail.totalPoint || 0).toLocaleString() }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">등록일</span>
+              <span class="value">{{ formatDate(selectedDetail.regDate) }}</span>
+            </div>
+          </div>
+          <p v-else class="modal-message">조회되는 리스트가 없습니다.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="confirm-button" @click="closeDetail">닫기</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -116,6 +113,7 @@ const errorMessage = ref('')
 const rankingList = ref([])
 const totalPrize = ref(0)
 const currentPage = ref(0)
+const pageOffset = ref(0)
 const hasNextPage = ref(false)
 
 // 상세 모달 관련
@@ -136,7 +134,8 @@ const api = $fetch.create({
 
 // 순위 번호 계산
 const getRankNumber = (index) => {
-  return currentPage.value * 10 + index + 1
+  const offset = pageOffset.value || 0
+  return offset + index + 1
 }
 
 // 날짜 포맷팅
@@ -157,12 +156,36 @@ const loadRankingData = async (page = 0) => {
     if (page === 0) {
       isLoading.value = true
       rankingList.value = []
+      pageOffset.value = 0
     } else {
       isLoadingMore.value = true
     }
 
     errorMessage.value = ''
 
+    // 🚧 서버 꺼진 상태 테스트용 더미 데이터
+    const useMock = true
+    if (useMock) {
+      const mockItems = [
+        { memName: '홍길동', totalPoint: 1000, regDate: '2025-08-01', isMe: true },
+        { memName: '김철수', totalPoint: 800, regDate: '2025-08-02', isMe: false },
+        { memName: '이영희', totalPoint: 600, regDate: '2025-08-03', isMe: false },
+        { memName: '박민수', totalPoint: 400, regDate: '2025-08-04', isMe: false },
+      ]
+
+      rankingList.value = page === 0 ? mockItems : [...rankingList.value, ...mockItems]
+
+      totalPrize.value = rankingList.value.reduce((sum, item) => sum + Number(item.totalPoint || 0), 0)
+
+      hasNextPage.value = page < 1
+      currentPage.value = page
+
+      isLoading.value = false
+      isLoadingMore.value = false
+      return
+    }
+
+    // 실제 서버 호출
     const response = await api('/api/users/rank', {
       method: 'GET',
       params: { page, size: 10 }
@@ -171,18 +194,22 @@ const loadRankingData = async (page = 0) => {
     if (response?.content) {
       const newItems = response.content
 
+      if (response.pageable?.offset !== undefined) {
+        if (page === 0) {
+          pageOffset.value = response.pageable.offset
+        }
+      }
+
       if (page === 0) {
         rankingList.value = newItems
       } else {
         rankingList.value.push(...newItems)
       }
 
-      // 총 당첨 금액 계산
       totalPrize.value = rankingList.value.reduce((sum, item) => {
         return sum + Number(item.totalPoint || 0)
       }, 0)
 
-      // 페이지네이션 정보
       hasNextPage.value = !response.last
       currentPage.value = page
     }
@@ -202,6 +229,7 @@ const loadMore = () => {
 
 // 상세 보기
 const showDetail = (item, index) => {
+  console.log("상세 클릭:", item, index) // 디버깅 로그
   selectedDetail.value = {
     ...item,
     rank: getRankNumber(index)
@@ -232,7 +260,7 @@ onMounted(() => {
 }
 
 .content-wrapper {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -267,7 +295,7 @@ onMounted(() => {
 
 .ranking-header {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 1fr;
+  grid-template-columns: 0.5fr 1.2fr 1.5fr 1.5fr 1fr;
   background-color: #f8f9fa;
   padding: 1rem;
   font-weight: bold;
@@ -286,7 +314,7 @@ onMounted(() => {
 
 .ranking-item {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 1fr;
+  grid-template-columns: 0.5fr 1.2fr 1.5fr 1.5fr 1fr;
   padding: 1rem;
   border-bottom: 1px solid #f1f3f4;
   align-items: center;
@@ -301,33 +329,22 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.rank-number {
-  text-align: center;
-  font-weight: bold;
-}
-
-.prize-amount {
-  text-align: center;
-  color: #2563eb;
-  font-weight: bold;
-}
-
+.rank-number,
+.mem-name,
+.prize-amount,
 .register-date {
   text-align: center;
-  font-size: 0.9rem;
-  color: #666;
 }
 
 .detail-button {
+  width: 100%;
   background: #333;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
-  margin: 0 auto;
-  display: block;
 }
 
 .detail-button:hover {
@@ -369,14 +386,14 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* 모달 스타일 */
+/* ✅ 중앙 팝업 모달 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,23 +402,27 @@ onMounted(() => {
 
 .modal-content {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 90%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow-y: auto;
+  max-width: 450px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.8rem;
+  margin-bottom: 1rem;
 }
 
 .modal-header h3 {
   margin: 0;
+  font-size: 1.2rem;
+  font-weight: bold;
   color: #333;
 }
 
@@ -410,71 +431,51 @@ onMounted(() => {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
-}
-
-.modal-body {
-  padding: 1rem;
+  color: #888;
 }
 
 .detail-info {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f1f3f4;
+  font-size: 0.95rem;
 }
 
 .label {
   font-weight: bold;
-  color: #333;
+  color: #444;
 }
 
 .value {
-  color: #666;
-}
-
-.modal-message {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  margin: 1rem 0;
+  color: #333;
 }
 
 .modal-footer {
-  padding: 1rem;
-  border-top: 1px solid #e9ecef;
+  margin-top: 1.5rem;
+  text-align: right;
 }
 
 .confirm-button {
-  width: 100%;
-  padding: 0.75rem;
   background: #333;
   color: white;
+  padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .confirm-button:hover {
   background: #555;
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .ranking-header,
-  .ranking-item {
-    grid-template-columns: 0.5fr 1.5fr 1.5fr 0.8fr;
-    font-size: 0.9rem;
-  }
-
-  .detail-button {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.8rem;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 </style>

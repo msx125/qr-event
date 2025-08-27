@@ -9,7 +9,7 @@
         <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
         <div v-else class="success-content">
-          <h2 class="congratulation-name">축하합니다 {{ memName }} 님 🎉 </h2>
+          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉 </h2>
 
           <!-- 이번 QR로 획득한 포인트 -->
           <p class="points">로또 {{qrrank}} 등  - {{ gainedPoint.toLocaleString() }} P 획득!</p>
@@ -26,7 +26,9 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const qrKey = computed(() => String(route.query.qrKey ?? ''))
+const qrKey = computed(() =>
+    String(route.query.qrKey ?? sessionStorage.getItem('qrKey') ?? '')
+)
 
 // 새로고침 시 화면 날라가는 것 방지 위한 qr별 캐시키
 const cacheKey = computed(() => `reward:${qrKey.value}`)
@@ -35,7 +37,7 @@ const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
 
 // 서버가 content 에 담아주는 요청
-const memName = ref<string>('')
+const name = ref<string>('')
 const gainedPoint = ref<number>(0)
 const totalPoint = ref<number | null>(null)
 const rank = ref<number | null>(null)
@@ -56,6 +58,8 @@ const api = $fetch.create({
     }
   }
 })
+// fetcher 로 빼기
+
 
 /* 데이터 로드 (단순 흐름) */
 async function loadData() {
@@ -88,35 +92,13 @@ async function loadData() {
 
     // 정상 처리
     gainedPoint.value = Number(res1?.points ?? 0)
-    memName.value = String(res1?.name ?? '').trim()
+    name.value = String(res1?.name ?? '').trim()
     qrrank.value = res1?.qrrank ?? null
-
-
-    // 2) 랭킹/총점 (GET, 파라미터 없음)
-    const res2: any = await api('/api/users/rank', { method: 'GET' })
-
-    console.log("res2:", res2)
-
-    const list = Array.isArray(res2?.content) ? res2.content : []
-    const offset =
-        typeof res2?.pageable?.offset === 'number'
-            ? res2.pageable.offset
-            : 0
-
-    const idx = list.findIndex((item: any) => item?.memName === memName.value)
-
-    if (idx >= 0) {
-      totalPoint.value = Number(list[idx].totalPoint ?? 0)
-      rank.value = offset + idx + 1
-    } else {
-      totalPoint.value = null
-      rank.value = null
-    }
 
 
     // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지) - 처음 한번만 서버 요청 후 캐시 저장
     sessionStorage.setItem(cacheKey.value, JSON.stringify({
-    memName: memName.value,
+    name: name.value,
     gainedPoint: gainedPoint.value,
     totalPoint: totalPoint.value,
     rank: rank.value,
@@ -125,7 +107,9 @@ async function loadData() {
 
   } catch (e: any) {
     if (e?.status === 401) {
-    return navigateTo(`/?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
+      localStorage.removeItem("accessToken")
+      sessionStorage.clear()
+      return navigateTo(`/?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
     }
 
     errorMessage.value =
@@ -145,7 +129,7 @@ onMounted(() => {
     const raw = sessionStorage.getItem(cacheKey.value)
     if (raw) {
       const d = JSON.parse(raw)
-      memName.value = d.memName ?? ''
+      name.value = d.name ?? ''
       gainedPoint.value = Number(d.gainedPoint ?? 0)
       totalPoint.value = d.totalPoint ?? null
       rank.value = d.rank ?? null
@@ -156,6 +140,7 @@ onMounted(() => {
   } catch {}
   loadData()
 })
+
 </script>
 
 <style scoped>
