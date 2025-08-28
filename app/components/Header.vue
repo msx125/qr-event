@@ -1,8 +1,7 @@
 <template>
   <nav class="gnb">
     <div class="gnb-content">
-      <!-- FIX: 불필요한 a 제거 -->
-      <NuxtLink class="logo">
+      <NuxtLink class="logo" to="/reward">
         <img src=/images/thumbnail_image_idevel.png />
       </NuxtLink>
 
@@ -51,17 +50,23 @@ const isLoginPage = computed(() => route.path === '/')
   align-items: center;
 }
 
-.logo {
-  max-height: 40px;  /* 세로 크기만 제한 */
+.logo img {
+  max-height: 40px;   /* 기본 크기 */
+  max-width: 120px;   /* 가로 제한 */
   height: auto;
   width: auto;
   object-fit: contain;
-  margin-right: 4rem;
+  display: block;
+}
+
+.logo {
+  flex-shrink: 1;
 }
 
 .nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
+  flex-shrink: 0;  /* 버튼 안 사라지게 고정 */
 }
 
 .nav-link {

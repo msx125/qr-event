@@ -13,12 +13,16 @@
         <div v-else class="success-content">
           <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉</h2>
 
-          <!-- 이번 QR로 획득한 포인트 -->
+          <!-- 이번 QR로 획득한 포인트, 총점, 등수 -->
           <p class="points">{{ qrrank }}등 상품 - {{ points.toLocaleString() }} P 획득!</p>
-
           <!-- 총점/등수 -->
           <p class="points-sub">몇점 모았지? 💸 {{ total.toLocaleString() }} P</p>
           <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
+        </div>
+
+        <div class="button-group">
+          <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
+          <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
         </div>
 
       </div>
@@ -31,6 +35,7 @@ const route = useRoute()
 const qrKey = computed(() =>
     String(route.query.qrKey ?? sessionStorage.getItem('qrKey') ?? '')
 )
+const router = useRouter()
 
 const cacheKey = computed(() => `reward:${qrKey.value}`)
 
@@ -57,6 +62,23 @@ const api = $fetch.create({
   }
 })
 
+// myList.vue 이동
+const goToMyList = () => {
+  router.push({
+    path: "/myList",
+    query: {
+      recentPoint: points.value,
+      recentRank: qrrank.value,
+      recentDate: new Date().toISOString()
+    }
+  })
+}
+
+// rankList.vue 이동
+const goToRankList = () => {
+  router.push("/rankList")
+}
+
 /* 데이터 로드 */
 async function loadData() {
   if (isLoading.value) return
@@ -66,7 +88,7 @@ async function loadData() {
     errorMessage.value = null
 
     if (!qrKey.value) {
-      errorMessage.value = 'QR 코드가 유효하지 않습니다.'
+      errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
       return
     }
 
@@ -112,6 +134,7 @@ async function loadData() {
   }
 }
 
+
 // 마운트 시 캐시 우선
 onMounted(() => {
   try {
@@ -132,16 +155,17 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  min-height: 100vh;
+  min-height: calc(100svh - 5.8rem);
   background-color: #f5f5f5;
 }
 .main-content {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 8.8rem);
   padding: 2rem 1rem;
 }
+
 .content-card {
   background-color: white;
   border-radius: 12px;
@@ -153,7 +177,7 @@ onMounted(() => {
   animation: fadeIn 0.4s ease;
 }
 .status-message { font-size: 1.1rem; color: #666; }
-.error-message { font-size: 1.1rem; color: #dc2626; white-space: pre-wrap; }
+.error-message { font-size: 1.1rem; color: #111827; white-space: pre-wrap; }
 .success-content { display: flex; flex-direction: column; gap: 1rem; }
 .congratulation-name { font-size: 1.6rem; font-weight: bold; color: #111827; margin: 0; }
 .points { font-size: 1.4rem; font-weight: bold; color: #2563eb; margin: 0; }
@@ -162,4 +186,31 @@ onMounted(() => {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* 버튼 css */
+.button-group {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column; /* 세로 정렬 */
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.nav-btn {
+  padding: 0.8rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  width: 100%;
+}
+
+.nav-btn:hover {
+  background-color: #1d4ed8;
+}
+
 </style>

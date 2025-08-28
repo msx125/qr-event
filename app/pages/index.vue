@@ -52,15 +52,6 @@ const loginMemo = ref('')
 // URL 에서 QR 코드 읽기
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
-// 토큰 있으면 reward로 자동이동
-onMounted(() => {
-  const token = localStorage.getItem('accessToken')
-  // 토큰 유효성도 확인해야 함
-  if (token && token !== 'undefined' && token !== 'null') {
-    return navigateTo(`/reward?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
-  }
-})
-
 console.log(qrKey.value)
 
 const handleLogin = async () => {
@@ -132,16 +123,26 @@ const handleLogin = async () => {
     // 서버 에러 일때도 서버가 전달한 메세지 노출
     loginMemo.value = String(e?.data?.memo ?? e?.data?.message ?? e?.message ?? '통신 중 문제가 발생했습니다.')
 
+    // 패턴 숙지
   } finally {
     isLoading.value = false
   }
 }
 
+// 토큰 있으면 reward로 자동이동
+onMounted(() => {
+  const token = localStorage.getItem('accessToken')
+  // 토큰 유효성도 확인해야 함
+  if (token && token !== 'undefined' && token !== 'null') {
+    return navigateTo(`/reward?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
+  }
+})
+
 </script>
 
 <style scoped>
 .login-container {
-  min-height: 100vh;
+  min-height: calc(100svh - 5.8rem);
   display: flex;
   align-items: center;
   justify-content: center;

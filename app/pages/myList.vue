@@ -31,7 +31,7 @@
                     :key="index"
                     class="ranking-item"
                 >
-                  <span class="rank-number">{{ getRankNumber(index) }}</span>
+                  <span class="rank-number">{{ index + 1 }}</span>
                   <span class="prize-amount">{{ Number(item.qrPoint || 0).toLocaleString() }}</span>
                   <span class="qr-rank">{{ item.qrRank }}</span>
                   <span class="register-date">{{ formatDate(item.registeredAt) }}</span>
@@ -47,6 +47,12 @@
             </div>
           </div>
         </div>
+
+        <!-- 뒤로가기 버튼 -->
+        <div class="back-btn-wrapper">
+          <button class="back-btn" @click="goBack">뒤로가기</button>
+        </div>
+
       </div>
     </main>
   </div>
@@ -54,15 +60,12 @@
 
 <script setup>
 import { ref, onMounted } from "vue"
+const router = useRouter()
 
 const isLoading = ref(true)
 const errorMessage = ref("")
 const rankingList = ref([])
 const totalPrize = ref(0)
-const currentPage = ref(0)
-
-// 순번 계산
-const getRankNumber = (index) => currentPage.value * 10 + index + 1
 
 // 날짜 포맷팅
 const formatDate = (dateString) => {
@@ -74,6 +77,11 @@ const formatDate = (dateString) => {
     hour: "2-digit",
     minute: "2-digit",
   }).replace(/\./g, "-")
+}
+
+// 히스토리 스택 유지한채로 뒤로가기 ( 이전 화면 그대로 가지고 있도록 )
+const goBack = () => {
+  router.back()
 }
 
 // fetcher 세팅
@@ -106,6 +114,7 @@ const loadRankingData = async () => {
         qrRank: it.QR_RANKING,
       }))
 
+      // 프론트 속도를 고려해서 서버쪽에서 계산하는게 나으므로.. /api/users/qrhisory 응답값으로... 요청하기
       totalPrize.value = rankingList.value.reduce(
           (sum, i) => sum + (i.qrPoint || 0),
           0
@@ -118,7 +127,7 @@ const loadRankingData = async () => {
       errorMessage.value = "알 수 없는 응답 형식입니다."
     }
   } catch (err) {
-    console.error("❌ API 에러:", err)
+    console.error("API 에러:", err)
     errorMessage.value = "데이터 불러오기 실패"
   } finally {
     isLoading.value = false
@@ -132,7 +141,7 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  min-height: 100vh;
+  min-height: calc(100vh - 20.8rem);
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   padding: 2rem 1rem;
   font-family: "Noto Sans KR", sans-serif;
@@ -163,6 +172,15 @@ onMounted(() => {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ✅ 리스트 영역 고정 (5줄까지) */
+.ranking-list {
+  flex: 1;
+  max-height: calc(5 * 3.5rem); /* 최대 5개까지만 보이게 */
+  overflow-y: scroll;            /* 항상 스크롤 표시 */
 }
 
 .ranking-header {
@@ -221,4 +239,24 @@ onMounted(() => {
   font-weight: bold;
   color: #111827;
 }
+
+.back-btn-wrapper {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.back-btn {
+  padding: 0.6rem 1.2rem;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.back-btn:hover {
+  background-color: #1d4ed8;
+}
 </style>
+
