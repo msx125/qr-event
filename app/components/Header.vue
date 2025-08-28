@@ -3,7 +3,7 @@
     <div class="gnb-content">
       <!-- FIX: 불필요한 a 제거 -->
       <NuxtLink class="logo">
-        <img src=/images/logo.png />
+        <img src=/images/thumbnail_image_idevel.png />
       </NuxtLink>
 
       <!-- 로그인 화면에서는 nav-links 자체를 숨김 -->

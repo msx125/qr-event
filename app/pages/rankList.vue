@@ -3,7 +3,7 @@
     <main class="main-content">
       <div class="content-wrapper">
         <div class="ranking-section">
-          <h2 class="section-title">당첨 결과</h2>
+          <h2 class="section-title">포인트 순위</h2>
 
           <!-- 로딩 상태 -->
           <div v-if="isLoading" class="status-message">
@@ -21,7 +21,7 @@
               <div class="ranking-header">
                 <span class="header-item">순위</span>
                 <span class="header-item">이름</span>
-                <span class="header-item">누적 포인트</span>
+                <span class="header-item">총 포인트</span>
               </div>
 
               <div class="ranking-list">
@@ -90,7 +90,7 @@ const loadRankingData = async () => {
     errorMessage.value = ""
 
     const res = await api("/api/users/rank", { method: "GET" })
-    console.log("rank api response:", res)
+    console.log("/api/users/rank 응답값 체크: ", res)
 
     if (res?.data && Array.isArray(res.data)) {
       rankingList.value = res.data.map((it) => ({
