@@ -3,20 +3,22 @@
     <main class="main-content">
       <div class="content-card">
 
+        <!-- 로딩 -->
         <div v-if="isLoading" class="status-message">확인 중…</div>
 
-        <!-- 서버에서 qr 상태에 대한 응답 key memo 보여주기 -->
+        <!-- 에러 -->
         <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
 
+        <!-- 성공 -->
         <div v-else class="success-content">
-          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉 </h2>
+          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉</h2>
 
           <!-- 이번 QR로 획득한 포인트 -->
-          <p class="points">로또 {{qrrank}} 등  - {{ gainedPoint.toLocaleString() }} P 획득!</p>
+          <p class="points">{{ qrrank }}등 상품 - {{ points.toLocaleString() }} P 획득!</p>
 
-          <!-- 총점/등수 (없으면 — 표기) -->
-          <p class="points-sub">총 포인트는? 💸  {{ totalPoint === null ? '0점' : totalPoint.toLocaleString() }} P</p>
-          <p class="points-sub">내 포인트 순위는? 🤔 {{ rank === null ? '등수없음' : `${rank}위` }}</p>
+          <!-- 총점/등수 -->
+          <p class="points-sub">몇점 모았지? 💸 {{ total.toLocaleString() }} P</p>
+          <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
         </div>
 
       </div>
@@ -30,23 +32,19 @@ const qrKey = computed(() =>
     String(route.query.qrKey ?? sessionStorage.getItem('qrKey') ?? '')
 )
 
-// 새로고침 시 화면 날라가는 것 방지 위한 qr별 캐시키
 const cacheKey = computed(() => `reward:${qrKey.value}`)
 
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
 
-// 서버가 content 에 담아주는 요청
+// 서버 응답 데이터
 const name = ref<string>('')
-const gainedPoint = ref<number>(0)
-const totalPoint = ref<number | null>(null)
-const rank = ref<number | null>(null)
-
-// 로또 등수
+const points = ref<number>(0)
+const total = ref<number>(0)
+const pointRank = ref<number | null>(null)
 const qrrank = ref<number | null>(null)
 
-
-// fetcher 로 빼기
+// fetcher
 const { VITE_BASE_URL } = import.meta.env
 const api = $fetch.create({
   baseURL: VITE_BASE_URL,
@@ -58,14 +56,10 @@ const api = $fetch.create({
     }
   }
 })
-// fetcher 로 빼기
 
-
-/* 데이터 로드 (단순 흐름) */
+/* 데이터 로드 */
 async function loadData() {
-
-  // 이미 로딩중이면 종료되어서 2번 호출 안되도록 방어 시도 25.08.25
-  if(isLoading.value) return
+  if (isLoading.value) return
 
   try {
     isLoading.value = true
@@ -84,25 +78,26 @@ async function loadData() {
 
     console.log("res1:", res1)
 
-    // ok:false면 memo 그대로 에러로 표시
+    // 실패 처리
     if (!res1?.ok) {
       errorMessage.value = res1?.memo || '유효하지 않은 코드입니다.'
       return
     }
 
-    // 정상 처리
-    gainedPoint.value = Number(res1?.points ?? 0)
+    // 성공 처리
+    points.value = Number(res1?.points ?? 0)
     name.value = String(res1?.name ?? '').trim()
     qrrank.value = res1?.qrrank ?? null
+    total.value = Number(res1?.total ?? 0)
+    pointRank.value = res1?.pointRank ?? null
 
-
-    // 성공 시 화면 데이터 그대로 캐시 (세션 스토리지) - 처음 한번만 서버 요청 후 캐시 저장
+    // 성공 시 캐시 저장
     sessionStorage.setItem(cacheKey.value, JSON.stringify({
-    name: name.value,
-    gainedPoint: gainedPoint.value,
-    totalPoint: totalPoint.value,
-    rank: rank.value,
-    qrrank: qrrank.value,
+      name: name.value,
+      points: points.value,
+      total: total.value,
+      pointRank: pointRank.value,
+      qrrank: qrrank.value,
     }))
 
   } catch (e: any) {
@@ -111,36 +106,28 @@ async function loadData() {
       sessionStorage.clear()
       return navigateTo(`/?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
     }
-
-    errorMessage.value =
-        e?.data?.message ||
-        e?.message ||
-        '데이터를 불러오는 중 문제가 발생했습니다.'
+    errorMessage.value = e?.data?.message || e?.message || '데이터를 불러오는 중 문제가 발생했습니다.'
   } finally {
     isLoading.value = false
   }
 }
 
-// 컴포넌트가 DOM에 마운트될 때 자동으로 실행되는 함수
+// 마운트 시 캐시 우선
 onMounted(() => {
-
-    // 마운트 시 캐시 먼저 시도하도록 함
   try {
     const raw = sessionStorage.getItem(cacheKey.value)
     if (raw) {
       const d = JSON.parse(raw)
       name.value = d.name ?? ''
-      gainedPoint.value = Number(d.gainedPoint ?? 0)
-      totalPoint.value = d.totalPoint ?? null
-      rank.value = d.rank ?? null
+      points.value = Number(d.points ?? 0)
+      total.value = Number(d.total ?? 0)
+      pointRank.value = d.pointRank ?? null
       qrrank.value = d.qrrank ?? null
       return
-      }
-    // 마운트 시 캐시 먼저 시도하도록 함
+    }
   } catch {}
   loadData()
 })
-
 </script>
 
 <style scoped>
@@ -157,18 +144,22 @@ onMounted(() => {
 }
 .content-card {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   padding: 2rem;
-  max-width: 400px;
+  max-width: 420px;
   width: 100%;
   text-align: center;
+  animation: fadeIn 0.4s ease;
 }
 .status-message { font-size: 1.1rem; color: #666; }
 .error-message { font-size: 1.1rem; color: #dc2626; white-space: pre-wrap; }
 .success-content { display: flex; flex-direction: column; gap: 1rem; }
-.congratulation-name { font-size: 1.4rem; color: #333; margin: 0; }
-.points { font-size: 1.5rem; font-weight: bold; color: #2563eb; margin: 0; }
-
-.points-sub { font-size: 1rem; font-weight: bold; margin: 0; }
+.congratulation-name { font-size: 1.6rem; font-weight: bold; color: #111827; margin: 0; }
+.points { font-size: 1.4rem; font-weight: bold; color: #2563eb; margin: 0; }
+.points-sub { font-size: 1rem; font-weight: 500; margin: 0; color: #374151; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>

@@ -19,11 +19,9 @@
           <div v-else class="ranking-container">
             <div class="ranking-card">
               <div class="ranking-header">
-                <span class="header-item">No.</span>
+                <span class="header-item">순위</span>
                 <span class="header-item">이름</span>
-                <span class="header-item">당첨 금액</span>
-                <span class="header-item">등록 날짜</span>
-                <span class="header-item">상세</span>
+                <span class="header-item">누적 포인트</span>
               </div>
 
               <div class="ranking-list">
@@ -35,215 +33,94 @@
                 >
                   <span class="rank-number">{{ getRankNumber(index) }}</span>
                   <span class="mem-name">{{ item.memName }}</span>
-                  <span class="prize-amount">{{ Number(item.totalPoint || 0).toLocaleString() }}</span>
-                  <span class="register-date">{{ formatDate(item.regDate) }}</span>
-                  <button
-                      class="detail-button"
-                      @click="showDetail(item, index)"
-                  >
-                    상세
-                  </button>
+                  <span class="prize-amount">
+                    {{ Number(item.totalPoint || 0).toLocaleString() }}
+                  </span>
                 </div>
               </div>
 
-              <!-- 총 당첨 금액 -->
+              <!-- 총 합계 -->
               <div class="total-section">
                 <p class="total-text">
-                  당첨 금액 합계 : {{ totalPrize.toLocaleString() }}
+                  총 누적 포인트 : {{ totalPrize.toLocaleString() }} P
                 </p>
               </div>
             </div>
-
-            <!-- 페이지네이션 버튼 -->
-            <button
-                v-if="hasNextPage"
-                class="load-more-button"
-                @click="loadMore"
-                :disabled="isLoadingMore"
-            >
-              {{ isLoadingMore ? '로딩 중...' : '예전부터 더 보기' }}
-            </button>
           </div>
         </div>
       </div>
     </main>
-
-    <!-- ✅ 상세 모달 -->
-    <div v-if="showDetailModal" class="modal-overlay" @click="closeDetail">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>당첨 결과 상세</h3>
-          <button class="close-button" @click="closeDetail">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div v-if="selectedDetail" class="detail-info">
-            <div class="info-row">
-              <span class="label">순위</span>
-              <span class="value">{{ selectedDetail.rank }}위</span>
-            </div>
-            <div class="info-row">
-              <span class="label">이름</span>
-              <span class="value">{{ selectedDetail.memName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">포인트</span>
-              <span class="value">{{ Number(selectedDetail.totalPoint || 0).toLocaleString() }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">등록일</span>
-              <span class="value">{{ formatDate(selectedDetail.regDate) }}</span>
-            </div>
-          </div>
-          <p v-else class="modal-message">조회되는 리스트가 없습니다.</p>
-        </div>
-
-        <div class="modal-footer">
-          <button class="confirm-button" @click="closeDetail">닫기</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from "vue"
+
 const isLoading = ref(true)
-const isLoadingMore = ref(false)
-const errorMessage = ref('')
+const errorMessage = ref("")
 const rankingList = ref([])
 const totalPrize = ref(0)
 const currentPage = ref(0)
-const pageOffset = ref(0)
-const hasNextPage = ref(false)
 
-// 상세 모달 관련
-const showDetailModal = ref(false)
-const selectedDetail = ref(null)
+// ✅ 내 계정 이름 (로그인 시 localStorage에 저장된 값)
+const myName = localStorage.getItem("memName") || ""
 
+// 순위 번호 계산
+const getRankNumber = (index) => {
+  return currentPage.value * 10 + index + 1
+}
+
+// fetcher
 const { VITE_BASE_URL } = import.meta.env
 const api = $fetch.create({
   baseURL: VITE_BASE_URL,
   onRequest({ options }) {
-    const token = localStorage.getItem('accessToken')
+    const token = localStorage.getItem("accessToken")
     if (token) {
       options.headers = new Headers(options.headers || {})
-      options.headers.set('Authorization', `Bearer ${token}`)
+      options.headers.set("Authorization", `Bearer ${token}`)
     }
   }
 })
 
-// 순위 번호 계산
-const getRankNumber = (index) => {
-  const offset = pageOffset.value || 0
-  return offset + index + 1
-}
-
-// 날짜 포맷팅
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).replace(/\./g, '-').replace(' ', ' ')
-}
-
-// 랭킹 데이터 로드
-const loadRankingData = async (page = 0) => {
+// 데이터 로드
+const loadRankingData = async () => {
   try {
-    if (page === 0) {
-      isLoading.value = true
+    isLoading.value = true
+    errorMessage.value = ""
+
+    const res = await api("/api/users/rank", { method: "GET" })
+    console.log("rank api response:", res)
+
+    if (res?.data && Array.isArray(res.data)) {
+      rankingList.value = res.data.map((it) => ({
+        memName: it.MEM_NAME,
+        totalPoint: Number(it.TOTAL_POINT) || 0,
+        isMe: it.MEM_NAME === myName // ✅ 내 계정 강조
+      }))
+      totalPrize.value = rankingList.value.reduce(
+          (sum, item) => sum + item.totalPoint,
+          0
+      )
+    } else if (res?.result) {
+      errorMessage.value = res.result
       rankingList.value = []
-      pageOffset.value = 0
+      totalPrize.value = 0
     } else {
-      isLoadingMore.value = true
+      errorMessage.value = "알 수 없는 응답 형식입니다."
+      rankingList.value = []
+      totalPrize.value = 0
     }
-
-    errorMessage.value = ''
-
-    // 🚧 서버 꺼진 상태 테스트용 더미 데이터
-    const useMock = true
-    if (useMock) {
-      const mockItems = [
-        { memName: '홍길동', totalPoint: 1000, regDate: '2025-08-01', isMe: true },
-        { memName: '김철수', totalPoint: 800, regDate: '2025-08-02', isMe: false },
-        { memName: '이영희', totalPoint: 600, regDate: '2025-08-03', isMe: false },
-        { memName: '박민수', totalPoint: 400, regDate: '2025-08-04', isMe: false },
-      ]
-
-      rankingList.value = page === 0 ? mockItems : [...rankingList.value, ...mockItems]
-
-      totalPrize.value = rankingList.value.reduce((sum, item) => sum + Number(item.totalPoint || 0), 0)
-
-      hasNextPage.value = page < 1
-      currentPage.value = page
-
-      isLoading.value = false
-      isLoadingMore.value = false
-      return
-    }
-
-    // 실제 서버 호출
-    const response = await api('/api/users/rank', {
-      method: 'GET',
-      params: { page, size: 10 }
-    })
-
-    if (response?.content) {
-      const newItems = response.content
-
-      if (response.pageable?.offset !== undefined) {
-        if (page === 0) {
-          pageOffset.value = response.pageable.offset
-        }
-      }
-
-      if (page === 0) {
-        rankingList.value = newItems
-      } else {
-        rankingList.value.push(...newItems)
-      }
-
-      totalPrize.value = rankingList.value.reduce((sum, item) => {
-        return sum + Number(item.totalPoint || 0)
-      }, 0)
-
-      hasNextPage.value = !response.last
-      currentPage.value = page
-    }
-
-  } catch (error) {
-    errorMessage.value = error?.data?.message || '데이터를 불러오는 중 오류가 발생했습니다.'
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = "데이터 불러오기 실패"
+    rankingList.value = []
+    totalPrize.value = 0
   } finally {
     isLoading.value = false
-    isLoadingMore.value = false
   }
 }
 
-// 더 보기 버튼
-const loadMore = () => {
-  loadRankingData(currentPage.value + 1)
-}
-
-// 상세 보기
-const showDetail = (item, index) => {
-  console.log("상세 클릭:", item, index) // 디버깅 로그
-  selectedDetail.value = {
-    ...item,
-    rank: getRankNumber(index)
-  }
-  showDetailModal.value = true
-}
-
-// 상세 모달 닫기
-const closeDetail = () => {
-  showDetailModal.value = false
-  selectedDetail.value = null
-}
-
-// 컴포넌트 마운트 시 데이터 로드
 onMounted(() => {
   loadRankingData()
 })
@@ -252,55 +129,51 @@ onMounted(() => {
 <style scoped>
 .page-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.main-content {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   padding: 2rem 1rem;
-}
-
-.content-wrapper {
-  max-width: 900px;
-  margin: 0 auto;
+  font-family: "Noto Sans KR", sans-serif;
 }
 
 .section-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #222;
   text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
 }
 
-.status-message {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-size: 1.1rem;
-}
-
-.error-message {
-  text-align: center;
-  padding: 2rem;
-  color: #dc2626;
-  font-size: 1.1rem;
+.section-title::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: #2563eb;
+  margin: 0.5rem auto 0;
+  border-radius: 2px;
 }
 
 .ranking-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.ranking-card:hover {
+  transform: translateY(-2px);
 }
 
 .ranking-header {
   display: grid;
-  grid-template-columns: 0.5fr 1.2fr 1.5fr 1.5fr 1fr;
-  background-color: #f8f9fa;
+  grid-template-columns: 0.7fr 2fr 2fr;
+  background-color: #f1f5f9;
   padding: 1rem;
-  font-weight: bold;
-  color: #333;
-  border-bottom: 1px solid #e9ecef;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1f2937;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .header-item {
@@ -314,168 +187,53 @@ onMounted(() => {
 
 .ranking-item {
   display: grid;
-  grid-template-columns: 0.5fr 1.2fr 1.5fr 1.5fr 1fr;
+  grid-template-columns: 0.7fr 2fr 2fr;
   padding: 1rem;
-  border-bottom: 1px solid #f1f3f4;
   align-items: center;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.2s ease;
 }
 
 .ranking-item:hover {
-  background-color: #f8f9fa;
+  background-color: #f9fafb;
 }
 
-.ranking-item.my-rank {
-  background-color: #e3f2fd;
-  font-weight: bold;
-}
-
-.rank-number,
-.mem-name,
-.prize-amount,
-.register-date {
+.rank-number {
   text-align: center;
+  font-weight: 600;
+  color: #374151;
 }
 
-.detail-button {
-  width: 100%;
-  background: #333;
-  color: white;
-  border: none;
-  padding: 0.5rem 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+.mem-name {
+  text-align: center;
+  font-weight: 500;
+  color: #111827;
 }
 
-.detail-button:hover {
-  background: #555;
+.prize-amount {
+  text-align: center;
+  font-weight: bold;
+  color: #2563eb;
 }
 
 .total-section {
   padding: 1rem;
-  background-color: #f8f9fa;
-  border-top: 2px solid #e9ecef;
+  background-color: #f9fafb;
+  border-top: 2px solid #f1f5f9;
+  text-align: center;
 }
 
 .total-text {
-  text-align: center;
   font-size: 1.1rem;
   font-weight: bold;
-  color: #333;
-  margin: 0;
+  color: #111827;
 }
 
-.load-more-button {
-  width: 100%;
-  padding: 1rem;
-  margin-top: 1rem;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #333;
-}
-
-.load-more-button:hover:not(:disabled) {
-  background: #f8f9fa;
-}
-
-.load-more-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ✅ 중앙 팝업 모달 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 450px;
-  padding: 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  animation: fadeIn 0.3s ease;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
+.my-rank {
+  background-color: #eff6ff; /* 연한 파란색 */
   font-weight: bold;
-  color: #333;
+  color: #1d4ed8; /* 진한 파랑 텍스트 */
 }
 
-.close-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #888;
-}
-
-.detail-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.95rem;
-}
-
-.label {
-  font-weight: bold;
-  color: #444;
-}
-
-.value {
-  color: #333;
-}
-
-.modal-footer {
-  margin-top: 1.5rem;
-  text-align: right;
-}
-
-.confirm-button {
-  background: #333;
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.confirm-button:hover {
-  background: #555;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
 </style>

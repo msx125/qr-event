@@ -32,8 +32,12 @@
                     class="ranking-item"
                 >
                   <span class="rank-number">{{ getRankNumber(index) }}</span>
-                  <span class="prize-amount">{{ Number(item.totalPoint || 0).toLocaleString() }}</span>
-                  <span class="register-date">{{ formatDate(item.regDate) }}</span>
+                  <span class="prize-amount">
+                    {{ Number(item.totalPoint || 0).toLocaleString() }}
+                  </span>
+                  <span class="register-date">
+                    {{ formatDate(item.regDate) }}
+                  </span>
                   <button
                       class="detail-button"
                       @click="showDetail(item, index)"
@@ -71,11 +75,15 @@
             </div>
             <div class="info-row">
               <span class="label">당첨 금액</span>
-              <span class="value">{{ Number(selectedDetail.totalPoint || 0).toLocaleString() }}</span>
+              <span class="value">
+                {{ Number(selectedDetail.totalPoint || 0).toLocaleString() }}
+              </span>
             </div>
             <div class="info-row">
               <span class="label">등록일</span>
-              <span class="value">{{ formatDate(selectedDetail.regDate) }}</span>
+              <span class="value">
+                {{ formatDate(selectedDetail.regDate) }}
+              </span>
             </div>
           </div>
         </div>
@@ -89,8 +97,10 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from "vue"
+
 const isLoading = ref(true)
-const errorMessage = ref('')
+const errorMessage = ref("")
 const rankingList = ref([])
 const totalPrize = ref(0)
 const currentPage = ref(0)
@@ -104,83 +114,57 @@ const getRankNumber = (index) => {
   return currentPage.value * 10 + index + 1
 }
 
-//fetch 로 묶기
-const { VITE_BASE_URL } = import.meta.env
-const api = $fetch.create({
-  baseURL: VITE_BASE_URL,
-  onRequest({ options }) {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      options.headers = new Headers(options.headers || {})
-      options.headers.set('Authorization', `Bearer ${token}`)
-    }
-  }
-})
-//fetch 로 묶기
-
-
-
-
 // 날짜 포맷팅
 const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).replace(/\./g, '-').replace(' ', ' ')
+  if (!dateString) return "-"
+  return new Date(dateString)
+      .toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+      .replace(/\./g, "-")
+      .replace(" ", " ")
 }
 
-// 데이터 로드 (더미데이터)
+// 데이터 로드 (더미데이터 강제 포함)
 const loadRankingData = async () => {
   try {
     isLoading.value = true
-    errorMessage.value = ''
+    errorMessage.value = ""
 
-    // 더미 데이터 갈아끼울 구간 //
-    const res: any = await api('/api/users/rank', {
-      method: 'GET',
-      params: {
-        page: currentPage.value, // 페이지 번호 (0부터 시작)
-        size: 10                // 한 번에 가져올 개수
-      }
-    })
+    // 더미 데이터 넣어줌
+    rankingList.value = [
+      { rank: 1, totalPoint: 1000, regDate: "2025-08-28" },
+      { rank: 2, totalPoint: 2000, regDate: "2025-08-27" },
+      { rank: 3, totalPoint: 1500, regDate: "2025-08-26" },
+      { rank: 4, totalPoint: 500, regDate: "2025-08-25" }
+    ]
 
-    console.log("rank api response:", res)
-
-
-    rankingList.value = Array.isArray(res?.content) ? res.content : []
-
-    // 더미 데이터 갈아끼울 구간 //
-
-    // 합계
-    totalPrize.value = rankingList.value.reduce((sum, item) => {
-      return sum + Number(item.totalPoint || 0)
-    }, 0)
-
-  } catch (error) {
-    console.error(error)
-    errorMessage.value = '데이터를 불러오는 중 오류가 발생했습니다.'
+    totalPrize.value = rankingList.value.reduce(
+        (sum, i) => sum + (i.totalPoint || 0),
+        0
+    )
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = "데이터 불러오기 실패"
   } finally {
     isLoading.value = false
   }
 }
 
-// 상세 보기
-const showDetail = (item, index) => {
-  selectedDetail.value = {
-    ...item,
-    rank: getRankNumber(index)
-  }
-  showDetailModal.value = true
-}
-
-// 상세 닫기
+// 상세 모달 닫기
 const closeDetail = () => {
   showDetailModal.value = false
   selectedDetail.value = null
+}
+
+// 상세 모달 열기
+const showDetail = (item, index) => {
+  selectedDetail.value = { ...item, rank: getRankNumber(index) }
+  showDetailModal.value = true
 }
 
 onMounted(() => {
@@ -193,7 +177,7 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   padding: 2rem 1rem;
-  font-family: 'Noto Sans KR', sans-serif;
+  font-family: "Noto Sans KR", sans-serif;
 }
 
 .section-title {
@@ -206,7 +190,7 @@ onMounted(() => {
 }
 
 .section-title::after {
-  content: '';
+  content: "";
   display: block;
   width: 60px;
   height: 3px;
@@ -218,7 +202,7 @@ onMounted(() => {
 .ranking-card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: transform 0.2s ease;
 }
@@ -229,7 +213,7 @@ onMounted(() => {
 
 .ranking-header {
   display: grid;
-  grid-template-columns: 0.5fr 2fr 2fr 1fr;
+  grid-template-columns: 0.7fr 2fr 2fr 1fr;
   background-color: #f1f5f9;
   padding: 1rem;
   font-weight: 600;
@@ -249,7 +233,7 @@ onMounted(() => {
 
 .ranking-item {
   display: grid;
-  grid-template-columns: 0.5fr 2fr 2fr 1fr;
+  grid-template-columns: 0.7fr 2fr 2fr 1fr;
   padding: 1rem;
   align-items: center;
   font-size: 0.95rem;
@@ -307,14 +291,14 @@ onMounted(() => {
   color: #111827;
 }
 
-/* ✅ 모달 디자인 */
+/* 모달 디자인 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,7 +311,7 @@ onMounted(() => {
   width: 90%;
   max-width: 420px;
   padding: 1.5rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   animation: fadeIn 0.3s ease;
 }
 
@@ -402,8 +386,13 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
 </style>
