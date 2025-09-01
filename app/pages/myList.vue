@@ -22,7 +22,7 @@
                 <span class="header-item">No.</span>
                 <span class="header-item">상품 포인트</span>
                 <span class="header-item">상품 등수</span>
-                <span class="header-item">획득 날짜</span>
+                <span class="header-item">사용 시간</span>
               </div>
 
               <div class="ranking-list">
@@ -41,7 +41,7 @@
               <!-- 누적 합계 -->
               <div class="total-section">
                 <p class="total-text">
-                  누적 포인트 합계 : {{ totalPrize.toLocaleString() }} P
+                  총 포인트 : {{ totalPrize.toLocaleString() }} P
                 </p>
               </div>
             </div>
@@ -69,14 +69,21 @@ const totalPrize = ref(0)
 
 // 날짜 포맷팅
 const formatDate = (dateString) => {
-  if (!dateString) return "-"
-  return new Date(dateString).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).replace(/\./g, "-")
+  if (!dateString) return ""
+
+  const date = new Date(dateString)
+
+  const month = date.getMonth() + 1  // 8
+  const day = date.getDate()         // 29
+
+  let hour = date.getHours()
+  const ampm = hour >= 12 ? "오후" : "오전"
+  hour = hour % 12
+  if (hour === 0) hour = 12
+
+  const minute = date.getMinutes().toString().padStart(2, "0")
+
+  return `${month}/${day} ${ampm} ${hour}:${minute}`
 }
 
 // 히스토리 스택 유지한채로 뒤로가기 ( 이전 화면 그대로 가지고 있도록 )
@@ -114,11 +121,8 @@ const loadRankingData = async () => {
         qrRank: it.QR_RANKING,
       }))
 
-      // 프론트 속도를 고려해서 서버쪽에서 계산하는게 나으므로.. /api/users/qrhisory 응답값으로... 요청하기
-      totalPrize.value = rankingList.value.reduce(
-          (sum, i) => sum + (i.qrPoint || 0),
-          0
-      )
+      totalPrize.value = res.totalPoint;
+
     } else if (res?.result) {
       errorMessage.value = res.result
       rankingList.value = []
@@ -176,7 +180,11 @@ onMounted(() => {
   flex-direction: column;
 }
 
-/* ✅ 리스트 영역 고정 (5줄까지) */
+.header-item {
+  text-align: center;
+}
+
+/* 리스트 영역 고정 (5줄까지) */
 .ranking-list {
   flex: 1;
   max-height: calc(5 * 3.5rem); /* 최대 5개까지만 보이게 */
