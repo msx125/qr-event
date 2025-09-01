@@ -3,11 +3,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build --dotenv .env.prod",
     "dev": "nuxt dev --dotenv .env",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "build": "nuxt build --dotenv .env.prod",
+    "docker:deploy:prod": "docker compose -f docker-compose.yml up -d --build"
   },
   "dependencies": {
     "nuxt": "^4.0.3",
