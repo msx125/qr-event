@@ -3,8 +3,16 @@
     <main class="main-content">
       <div class="content-card">
 
-        <!-- 로딩 -->
-        <div v-if="isLoading" class="status-message">확인 중…</div>
+
+        <!-- 인트로 GIF -->
+        <div v-if="isIntro" class="intro">
+          <img src="/1.gif" alt="추첨 중…" class="intro-gif" />
+          <p class="intro-text">추첨 중… 🎰</p>
+        </div>
+        <!-- 인트로 GIF -->
+
+        <!-- 로딩 --> <!-- 인트로 보일 땐 로딩 / 에러 / 성공 안보이도록 v-else-if 수정 -->
+        <div v-else-if="isLoading" class="status-message">확인 중…</div>
 
         <!-- 에러 -->
         <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
@@ -20,7 +28,8 @@
           <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
         </div>
 
-        <div class="button-group">
+        <!-- 인트로 / 로딩 / 에러 때 버튼 숨기기 -->
+        <div class="button-group" v-if="!isIntro && !isLoading && (!errorMessage || isQrMissing)">
           <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
           <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
         </div>
@@ -39,8 +48,13 @@ const router = useRouter()
 
 const cacheKey = computed(() => `reward:${qrKey.value}`)
 
+// 인트로(GIF)용 상태
+const isIntro = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
+
+// qr 없음 상태 플래그 추가
+const isQrMissing = ref(false)
 
 // 서버 응답 데이터
 const name = ref<string>('')
@@ -136,7 +150,17 @@ async function loadData() {
 
 
 // 마운트 시 캐시 우선
-onMounted(() => {
+onMounted(async () => {
+  // 0) qrKey가 아예 없으면: 인트로/로딩 off + 에러 메시지 + 버튼 보이기
+  if (!qrKey.value) {
+    isIntro.value = false
+    isLoading.value = false
+    isQrMissing.value = true          // ← 버튼 노출 조건에 씀
+    errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
+    return
+  }
+
+  // 1) 캐시 먼저 반영(있으면 즉시 표시)
   try {
     const raw = sessionStorage.getItem(cacheKey.value)
     if (raw) {
@@ -146,10 +170,24 @@ onMounted(() => {
       total.value = Number(d.total ?? 0)
       pointRank.value = d.pointRank ?? null
       qrrank.value = d.qrrank ?? null
-      return
     }
   } catch {}
-  loadData()
+
+  // 2) 뒤로가기 복귀면: 인트로 스킵 + 서버 재호출 금지
+  const skip = sessionStorage.getItem('skipRewardIntro') === '1'
+  if (skip) {
+    sessionStorage.removeItem('skipRewardIntro')
+    isIntro.value = false
+    isLoading.value = false
+    return
+  }
+
+  // 3) 정상 유입: 인트로 2초 + 서버 호출 병렬
+  isIntro.value = true
+  const timer = new Promise<void>((res) => setTimeout(res, 2000))
+  const data = loadData()
+  await Promise.allSettled([timer, data])
+  isIntro.value = false
 })
 </script>
 
@@ -212,5 +250,11 @@ onMounted(() => {
 .nav-btn:hover {
   background-color: #1d4ed8;
 }
+
+
+/* 인트로 스타일 */
+.intro { display:flex; flex-direction:column; align-items:center; gap:1rem; }
+.intro-gif { width:220px; height:auto; }
+.intro-text { font-size:1.1rem; color:#374151; }
 
 </style>
