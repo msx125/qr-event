@@ -1,44 +1,3 @@
-<template>
-  <div class="page-container">
-    <main class="main-content">
-      <div class="content-card">
-
-
-        <!-- 인트로 GIF -->
-        <div v-if="isIntro" class="intro">
-          <img src="/1.gif" alt="추첨 중…" class="intro-gif" />
-          <p class="intro-text">추첨 중… 🎰</p>
-        </div>
-        <!-- 인트로 GIF -->
-
-        <!-- 로딩 --> <!-- 인트로 보일 땐 로딩 / 에러 / 성공 안보이도록 v-else-if 수정 -->
-        <div v-else-if="isLoading" class="status-message">확인 중…</div>
-
-        <!-- 에러 -->
-        <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-
-        <!-- 성공 -->
-        <div v-else class="success-content">
-          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉</h2>
-
-          <!-- 이번 QR로 획득한 포인트, 총점, 등수 -->
-          <p class="points">{{ qrrank }}등 상품 - {{ points.toLocaleString() }} P 획득!</p>
-          <!-- 총점/등수 -->
-          <p class="points-sub">몇점 모았지? 💸 {{ total.toLocaleString() }} P</p>
-          <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
-        </div>
-
-        <!-- 인트로 / 로딩 / 에러 때 버튼 숨기기 -->
-        <div class="button-group" v-if="!isIntro && !isLoading">
-          <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
-          <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
-        </div>
-
-      </div>
-    </main>
-  </div>
-</template>
-
 <script setup lang="ts">
 const route = useRoute()
 // URL 쿼리 스트링에서 ?qrKey= 값 있으면 꺼내 쓰되, 없으면 세션 스토리지에 저장된 qrKey 꺼내기
@@ -108,7 +67,6 @@ async function loadData() {
       method: 'POST',
       body: { qrKey: qrKey.value }
     })
-
     console.log("res1:", res1)
 
 
@@ -133,6 +91,12 @@ async function loadData() {
       pointRank: pointRank.value,
       qrrank: qrrank.value,
     }))
+
+    isIntro.value = true
+    const timer = new Promise<void>((res) => setTimeout(res, 2000))
+    await Promise.allSettled([timer])
+    isIntro.value = false
+    navigateTo(`/reward/success?qrKey=${qrKey.value}`)
 
   } catch (e: any) {
     if (e?.status === 401) {
@@ -164,41 +128,45 @@ onMounted(async () => {
     isLoading.value = false
     isQrMissing.value = true          // ← 버튼 노출 조건에 씀
     errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
-    return
-  }
-
-  // 1) 캐시 먼저 반영(있으면 즉시 표시)
-  const raw = localStorage.getItem(cacheKey.value)
-  console.log("raw: ", raw)
-  if (raw) {
-    const d = JSON.parse(raw)
-    name.value = d.name ?? ''
-    points.value = Number(d.points ?? 0)
-    total.value = Number(d.total ?? 0)
-    pointRank.value = d.pointRank ?? null
-    qrrank.value = d.qrrank ?? null
-
-    isIntro.value = false
-    return
-  }
-
-  // 2) 뒤로가기 복귀면: 인트로 스킵 + 서버 재호출 금지
-  const skip = localStorage.getItem('skipRewardIntro') === '1'
-  if (skip) {
     localStorage.removeItem('skipRewardIntro')
-    isIntro.value = false
-    isLoading.value = false
     return
   }
 
   // 3) 정상 유입: 인트로 2초 + 서버 호출 병렬
-  isIntro.value = true
-  const timer = new Promise<void>((res) => setTimeout(res, 2000))
-  const data = loadData()
-  await Promise.allSettled([timer, data])
-  isIntro.value = false
+  await loadData()
+
 })
 </script>
+
+<template>
+  <div class="page-container">
+    <main class="main-content">
+      <div class="content-card">
+
+
+        <!-- 인트로 GIF -->
+        <div v-if="isIntro" class="intro">
+          <img src="/1.gif" alt="추첨 중…" class="intro-gif" />
+          <p class="intro-text">추첨 중… 🎰</p>
+        </div>
+        <!-- 인트로 GIF -->
+
+        <!-- 로딩 --> <!-- 인트로 보일 땐 로딩 / 에러 / 성공 안보이도록 v-else-if 수정 -->
+        <div v-else-if="isLoading" class="status-message">확인 중…</div>
+
+        <!-- 에러 -->
+        <div v-else-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+
+        <!-- 인트로 / 로딩 / 에러 때 버튼 숨기기 -->
+        <div class="button-group" v-if="!isIntro && !isLoading">
+          <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
+          <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</template>
 
 <style scoped>
 .page-container {
