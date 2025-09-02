@@ -1,7 +1,7 @@
 <template>
   <nav class="gnb">
     <div class="gnb-content">
-      <NuxtLink class="logo" to="/reward">
+      <NuxtLink class="logo" to="/reward?qrKey=">
         <img src=/images/thumbnail_image_idevel.png />
       </NuxtLink>
 

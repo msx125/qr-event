@@ -66,7 +66,7 @@ const router = useRouter()
 // 히스토리 스택 유지한채로 뒤로가기 ( 이전 화면 그대로 가지고 있도록 )
 // 다음 reward 진입 시 인트로 스킵
 const goBack = () => {
-  sessionStorage.setItem('skipRewardIntro', '1')
+  localStorage.setItem('skipRewardIntro', '1')
   router.back()
 }
 

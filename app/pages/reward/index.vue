@@ -29,7 +29,7 @@
         </div>
 
         <!-- 인트로 / 로딩 / 에러 때 버튼 숨기기 -->
-        <div class="button-group" v-if="!isIntro && !isLoading && (!errorMessage || isQrMissing)">
+        <div class="button-group" v-if="!isIntro && !isLoading">
           <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
           <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
         </div>
@@ -41,17 +41,15 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const qrKey = computed(() =>
-    String(route.query.qrKey ?? sessionStorage.getItem('qrKey') ?? '')
-)
+// URL 쿼리 스트링에서 ?qrKey= 값 있으면 꺼내 쓰되, 없으면 세션 스토리지에 저장된 qrKey 꺼내기
+const qrKey = computed(() => route.query.qrKey || "")
 const router = useRouter()
-
 const cacheKey = computed(() => `reward:${qrKey.value}`)
 
 // 인트로(GIF)용 상태
-const isIntro = ref(false)
-const isLoading = ref(false)
-const errorMessage = ref<string | null>(null)
+const isIntro = ref(false) // 인트로 gif 보여줄지 여부
+const isLoading = ref(false) // 서버 응답 여부 (로딩)
+const errorMessage = ref<string | null>(null) // 에러 메세지
 
 // qr 없음 상태 플래그 추가
 const isQrMissing = ref(false)
@@ -96,15 +94,14 @@ const goToRankList = () => {
 /* 데이터 로드 */
 async function loadData() {
   if (isLoading.value) return
+  if (!qrKey.value) {
+    errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
+    return
+  }
 
   try {
     isLoading.value = true
     errorMessage.value = null
-
-    if (!qrKey.value) {
-      errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
-      return
-    }
 
     // 1) QR 결과
     const res1: any = await api('/api/users/qr', {
@@ -114,8 +111,9 @@ async function loadData() {
 
     console.log("res1:", res1)
 
+
     // 실패 처리
-    if (!res1?.ok) {
+    if (res1.status != 200) {
       errorMessage.value = res1?.memo || '유효하지 않은 코드입니다.'
       return
     }
@@ -128,7 +126,7 @@ async function loadData() {
     pointRank.value = res1?.pointRank ?? null
 
     // 성공 시 캐시 저장
-    sessionStorage.setItem(cacheKey.value, JSON.stringify({
+    localStorage.setItem(cacheKey.value, JSON.stringify({
       name: name.value,
       points: points.value,
       total: total.value,
@@ -139,7 +137,7 @@ async function loadData() {
   } catch (e: any) {
     if (e?.status === 401) {
       localStorage.removeItem("accessToken")
-      sessionStorage.clear()
+      localStorage.clear()
       return navigateTo(`/?qrKey=${encodeURIComponent(qrKey.value)}`, { replace: true })
     }
     errorMessage.value = e?.data?.message || e?.message || '데이터를 불러오는 중 문제가 발생했습니다.'
@@ -148,6 +146,15 @@ async function loadData() {
   }
 }
 
+watch(
+    () => route.query.qrKey,
+    (newKey: string) => {
+      if(!newKey) {
+        qrKey.value = ""
+        errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
+      }
+    }
+)
 
 // 마운트 시 캐시 우선
 onMounted(async () => {
@@ -161,22 +168,24 @@ onMounted(async () => {
   }
 
   // 1) 캐시 먼저 반영(있으면 즉시 표시)
-  try {
-    const raw = sessionStorage.getItem(cacheKey.value)
-    if (raw) {
-      const d = JSON.parse(raw)
-      name.value = d.name ?? ''
-      points.value = Number(d.points ?? 0)
-      total.value = Number(d.total ?? 0)
-      pointRank.value = d.pointRank ?? null
-      qrrank.value = d.qrrank ?? null
-    }
-  } catch {}
+  const raw = localStorage.getItem(cacheKey.value)
+  console.log("raw: ", raw)
+  if (raw) {
+    const d = JSON.parse(raw)
+    name.value = d.name ?? ''
+    points.value = Number(d.points ?? 0)
+    total.value = Number(d.total ?? 0)
+    pointRank.value = d.pointRank ?? null
+    qrrank.value = d.qrrank ?? null
+
+    isIntro.value = false
+    return
+  }
 
   // 2) 뒤로가기 복귀면: 인트로 스킵 + 서버 재호출 금지
-  const skip = sessionStorage.getItem('skipRewardIntro') === '1'
+  const skip = localStorage.getItem('skipRewardIntro') === '1'
   if (skip) {
-    sessionStorage.removeItem('skipRewardIntro')
+    localStorage.removeItem('skipRewardIntro')
     isIntro.value = false
     isLoading.value = false
     return
