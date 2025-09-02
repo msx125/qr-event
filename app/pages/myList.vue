@@ -60,12 +60,15 @@
 
 <script setup>
 import { ref, onMounted } from "vue"
+
 const router = useRouter()
 
 const isLoading = ref(true)
 const errorMessage = ref("")
 const rankingList = ref([])
 const totalPrize = ref(0)
+// fetcher
+const api = useFetcher()
 
 // 날짜 포맷팅
 const formatDate = (dateString) => {
@@ -92,20 +95,6 @@ const goBack = () => {
   sessionStorage.setItem('skipRewardIntro', '1')
   router.back()
 }
-
-// fetcher 세팅
-const { VITE_BASE_URL } = import.meta.env
-const api = $fetch.create({
-  baseURL: VITE_BASE_URL,
-  onRequest({ options }) {
-    const token = localStorage.getItem("accessToken")
-    console.log("액세스 토큰:", token)
-    if (token) {
-      options.headers = new Headers(options.headers || {})
-      options.headers.set("Authorization", `Bearer ${token}`)
-    }
-  },
-})
 
 // 데이터 로드
 const loadRankingData = async () => {

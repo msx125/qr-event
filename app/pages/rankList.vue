@@ -60,8 +60,10 @@ const errorMessage = ref("")
 const rankingList = ref([])
 const totalPrize = ref(0)
 const currentPage = ref(0)
-
 const router = useRouter()
+// fetcher
+const api = useFetcher()
+
 
 // 히스토리 스택 유지한채로 뒤로가기 ( 이전 화면 그대로 가지고 있도록 )
 // 다음 reward 진입 시 인트로 스킵
@@ -77,19 +79,6 @@ const myName = localStorage.getItem("memName") || ""
 const getRankNumber = (index) => {
   return currentPage.value * 10 + index + 1
 }
-
-// fetcher
-const { VITE_BASE_URL } = import.meta.env
-const api = $fetch.create({
-  baseURL: VITE_BASE_URL,
-  onRequest({ options }) {
-    const token = localStorage.getItem("accessToken")
-    if (token) {
-      options.headers = new Headers(options.headers || {})
-      options.headers.set("Authorization", `Bearer ${token}`)
-    }
-  }
-})
 
 // 데이터 로드
 const loadRankingData = async () => {

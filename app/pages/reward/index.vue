@@ -29,7 +29,7 @@
         </div>
 
         <!-- 인트로 / 로딩 / 에러 때 버튼 숨기기 -->
-        <div class="button-group" v-if="!isIntro && !isLoading && (!errorMessage || isQrMissing)">
+        <div class="button-group" v-if="!isIntro && !isLoading">
           <button class="nav-btn" @click="goToMyList">내 포인트 내역 보기</button>
           <button class="nav-btn" @click="goToRankList">전체 순위 보기</button>
         </div>
@@ -41,9 +41,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const qrKey = computed(() =>
-    String(route.query.qrKey ?? sessionStorage.getItem('qrKey') ?? '')
-)
+const qrKey = computed(() => String(route.query.qrKey ?? ''))
 const router = useRouter()
 
 const cacheKey = computed(() => `reward:${qrKey.value}`)
@@ -62,19 +60,15 @@ const points = ref<number>(0)
 const total = ref<number>(0)
 const pointRank = ref<number | null>(null)
 const qrrank = ref<number | null>(null)
+const api = useFetcher()
 
-// fetcher
-const { VITE_BASE_URL } = import.meta.env
-const api = $fetch.create({
-  baseURL: VITE_BASE_URL,
-  onRequest({ options }) {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      options.headers = new Headers(options.headers || {})
-      options.headers.set('Authorization', `Bearer ${token}`)
-    }
-  }
-})
+// 새로고침 감지해서 gif 안띄우기 용도
+const isReload =
+    typeof window !== 'undefined' &&
+    (
+        performance?.getEntriesByType?.('navigation')?.[0]?.type === 'reload' ||
+        (performance as any)?.navigation?.type === 1 // 폴백
+    )
 
 // myList.vue 이동
 const goToMyList = () => {
@@ -114,8 +108,17 @@ async function loadData() {
 
     console.log("res1:", res1)
 
-    // 실패 처리
-    if (!res1?.ok) {
+    const qrError =
+        // 서버가 ok=false를 줄 수도 있음
+        res1?.ok === false ||
+        // 서버가 200으로 주지만 status 필드로 오류를 알림 (404.1 등)
+        (typeof res1?.status !== 'undefined' && Number(res1.status) >= 400) ||
+        // memo만 있고 정상 데이터 없음
+        (!!res1?.memo && !('points' in res1))
+
+    if (qrError) {
+      // 기존 성공 캐시가 있으면 지워서 0P 같은 잔상 방지
+      try { sessionStorage.removeItem(cacheKey.value) } catch {}
       errorMessage.value = res1?.memo || '유효하지 않은 코드입니다.'
       return
     }
@@ -151,6 +154,22 @@ async function loadData() {
 
 // 마운트 시 캐시 우선
 onMounted(async () => {
+
+  if (isReload) {
+    if (!qrKey.value) {
+      // qrKey 없으면 안내만
+      isIntro.value = false
+      isLoading.value = false
+      isQrMissing.value = true
+      errorMessage.value = 'QR 코드를 새롭게 찍어주세요 📷'
+      return
+    }
+    // qrKey 있으면 인트로 없이 바로 요청
+    isIntro.value = false
+    await loadData()
+    return
+  }
+
   // 0) qrKey가 아예 없으면: 인트로/로딩 off + 에러 메시지 + 버튼 보이기
   if (!qrKey.value) {
     isIntro.value = false

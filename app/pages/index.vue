@@ -52,6 +52,9 @@ const loginMemo = ref('')
 // URL 에서 QR 코드 읽기
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
+// fetcher
+const api = useFetcher()
+
 console.log(qrKey.value)
 
 const handleLogin = async () => {
@@ -60,32 +63,13 @@ const handleLogin = async () => {
   loginMemo.value = ''
 
   try {
-    // fetcher 로 빼기
-    const { VITE_BASE_URL } = import.meta.env
-    const api = $fetch.create({
-      baseURL: VITE_BASE_URL,
-      onRequest({ options }) {
-        const token = localStorage.getItem('accessToken')
-        console.log("token", token)
-        if (token) {
-          options.headers = new Headers(options.headers || {})
-          options.headers.set('Authorization', `Bearer ${token}`)
-        }
-      },
-      onResponseError({ response: res }) {
-        if (res.status === 401) {
-          logout()
-        }
-      }
-    })
-
     // 로그인 요청
     const res = await api('/api/users/login', {
       method: 'POST',
       body: { id: requestParams.id, password: requestParams.password },
     })
 
-    console.log("awit api 바로 다음 res", res)
+    console.log("res", res)
 
     const serverMemo = String(res?.memo ?? res?.result ?? '')
 
@@ -99,10 +83,10 @@ const handleLogin = async () => {
         localStorage.setItem('accessToken', res.accessToken)
         console.log("액세스 토큰 저장 : ", res.accessToken)
 
-        // 토큰을 저장하고 나면, 전역 상태에 '응 로그인 약속'
+        // 토큰을 저장하고 나면, 전역 상태에 '로그인 약속'
         setAuthed(true)
 
-        // 사용자 이름 설정 -> 재영님이 아직 응답값 안줬음
+        // 사용자 이름 설정
         if (res.name) { setName(res.name) }
         localStorage.setItem('memName', res.name)
 

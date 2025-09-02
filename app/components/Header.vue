@@ -1,7 +1,7 @@
 <template>
   <nav class="gnb">
     <div class="gnb-content">
-      <NuxtLink class="logo" to="/reward">
+      <NuxtLink class="logo" to="/reward" @click.prevent="handleLogo">
         <img src=/images/thumbnail_image_idevel.png />
       </NuxtLink>
 
@@ -27,9 +27,30 @@
 <script setup lang="ts">
 const route = useRoute()
 const { isAuthed, name, logout } = useAuth()
+const router = useRouter()
 
 // 현재 라우트가 로그인 페이지("/")인지 판별
 const isLoginPage = computed(() => route.path === '/')
+
+const handleLogo = () => {
+  try {
+    // 1) QR 키 무효화
+    sessionStorage.removeItem('qrKey')
+
+    // 2) reward 캐시 삭제
+    for (const rewardHistory of Object.keys(sessionStorage)) {
+      if (rewardHistory.startsWith('reward:')) {
+        sessionStorage.removeItem(rewardHistory)
+      }
+    }
+
+    // 3) 인트로 gif 건너뛰기
+    sessionStorage.setItem('skipRewardIntro', '1')
+  } catch {}
+
+  // /reward 이동
+  router.push('/reward')
+}
 
 </script>
 
