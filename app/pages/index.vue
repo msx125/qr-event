@@ -52,7 +52,6 @@ const loginMemo = ref('')
 // URL 에서 QR 코드 읽기
 const qrKey = computed(() => String(route.query.qrKey ?? ''))
 
-console.log(qrKey.value)
 
 const handleLogin = async () => {
   if(isLoading.value) return
@@ -66,7 +65,6 @@ const handleLogin = async () => {
       baseURL: VITE_BASE_URL,
       onRequest({ options }) {
         const token = localStorage.getItem('accessToken')
-        console.log("token", token)
         if (token) {
           options.headers = new Headers(options.headers || {})
           options.headers.set('Authorization', `Bearer ${token}`)
@@ -85,19 +83,13 @@ const handleLogin = async () => {
       body: { id: requestParams.id, password: requestParams.password },
     })
 
-    console.log("awit api 바로 다음 res", res)
-
-    const serverMemo = String(res?.memo ?? res?.result ?? '')
+    const serverMemo = String(res?.result ?? res?.status ?? '')
 
     if (res) {
-      if(res.result === "성공" && res.accessToken) {
-
-        console.log("로그인 성공")
-
-        console.log("2번째 다음 res", res)
+      if(res.status === 200 && res.accessToken) {
 
         localStorage.setItem('accessToken', res.accessToken)
-        console.log("액세스 토큰 저장 : ", res.accessToken)
+
 
         // 토큰을 저장하고 나면, 전역 상태에 '응 로그인 약속'
         setAuthed(true)
@@ -115,7 +107,7 @@ const handleLogin = async () => {
         loginMemo.value = serverMemo || '로그인에 실패했습니다.'
       }
     } else {
-      console.log("서버 통신, 200외 오류")
+
     }
 
   } catch (e) {

@@ -67,8 +67,6 @@ async function loadData() {
       method: 'POST',
       body: { qrKey: qrKey.value }
     })
-    console.log("res1:", res1)
-
 
     // 실패 처리
     if (res1.status != 200) {

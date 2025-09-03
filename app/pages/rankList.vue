@@ -98,7 +98,7 @@ const loadRankingData = async () => {
     errorMessage.value = ""
 
     const res = await api("/api/users/rank", { method: "GET" })
-    console.log("/api/users/rank 응답값 체크: ", res)
+   
 
     if (res?.data && Array.isArray(res.data)) {
       rankingList.value = res.data.map((it) => ({
@@ -135,6 +135,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.error-message {
+  display: flex;
+  justify-content: center;   /* 가로 가운데 */
+  align-items: center;       /* 세로 가운데 */
+  min-height: 200px;         /* 높이를 줘야 세로 중앙이 맞춰짐 FROM GPT */
+  text-align: center;
+  color: #dc2626;            /* 빨간색 (Tailwind red-600 정도) */
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 .page-container {
   min-height: calc(100vh - 8.8rem);
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);

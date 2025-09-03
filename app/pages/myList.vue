@@ -99,7 +99,7 @@ const api = $fetch.create({
   baseURL: VITE_BASE_URL,
   onRequest({ options }) {
     const token = localStorage.getItem("accessToken")
-    console.log("액세스 토큰:", token)
+
     if (token) {
       options.headers = new Headers(options.headers || {})
       options.headers.set("Authorization", `Bearer ${token}`)
@@ -114,7 +114,7 @@ const loadRankingData = async () => {
     errorMessage.value = ""
 
     const res = await api("/api/users/qrhistory", { method: "GET" })
-    console.log("/api/users/qrhistory 응답값 체크: ", res)
+
 
     if (res?.data && Array.isArray(res.data)) {
       rankingList.value = res.data.map((it) => ({
@@ -146,8 +146,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.html {
+  height: 100%;
+}
+
+/* 에러 메세지 중앙 표기 */
+.error-message {
+  display: flex;
+  justify-content: center;   /* 가로 가운데 */
+  align-items: center;       /* 세로 가운데 */
+  min-height: 200px;         /* 높이를 줘야 세로 중앙이 맞춰짐 FROM GPT */
+  text-align: center;
+  color: #dc2626;            /* 빨간색 (Tailwind red-600 정도) */
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 .page-container {
-  min-height: calc(100vh - 20.8rem);
+  /* min-height: calc(100vh - 20.8rem); */
+  min-height: 95vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   padding: 2rem 1rem;
   font-family: "Noto Sans KR", sans-serif;

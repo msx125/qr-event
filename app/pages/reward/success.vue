@@ -2,13 +2,21 @@
   <div class="page-container">
     <main class="main-content">
       <div class="content-card">
-        <!-- 성공 -->
-        <div class="success-content">
-          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉</h2>
 
-          <!-- 이번 QR로 획득한 포인트, 총점, 등수 -->
+        <!-- 성공 -->
+        <!-- 0점(꽝)일 때 UI -->
+        <div class="success-content" v-if="points === 0">
+          <h2 class="congratulation-name">{{ name }} 님</h2>
+          <p class="points">꽝💣 ㅠㅠ 아쉽지만 다음 QR을..</p>
+          <!-- 원하면 요 두 줄은 숨기거나 다른 문구로 교체 가능 -->
+          <p class="points-sub">총점은 💸 {{ total.toLocaleString() }} P</p>
+          <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
+        </div>
+
+        <!-- 0점이 아닐 때 기존 UI -->
+        <div class="success-content" v-else>
+          <h2 class="congratulation-name">축하합니다 {{ name }} 님 🎉</h2>
           <p class="points">{{ qrrank }}등 상품 - {{ points.toLocaleString() }} P 획득!</p>
-          <!-- 총점/등수 -->
           <p class="points-sub">몇점 모았지? 💸 {{ total.toLocaleString() }} P</p>
           <p class="points-sub">내 등수는? 🤔 {{ pointRank === null ? '등수없음' : `${pointRank}위` }}</p>
         </div>
@@ -58,7 +66,7 @@ const goToRankList = () => {
 // 로컬스토리지에서 데이터 불러오기
 const loadData = () => {
   const result = localStorage.getItem(cacheKey.value)
-  console.log("result: ", result)
+
   if (result) {
     const d = JSON.parse(result)
     name.value = d.name ?? ''
@@ -68,6 +76,8 @@ const loadData = () => {
     qrrank.value = d.qrrank ?? null
 
     return
+  } else {
+    navigateTo('/reward?qrKey')
   }
 }
 
